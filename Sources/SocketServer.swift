@@ -2,7 +2,7 @@ import Foundation
 
 let socketPath = "/tmp/menubar_ticker.sock"
 
-func runSocketServer(onMessage: @escaping (String) -> Void) {
+func runSocketServer(onMessage: @escaping (TickerMessage) -> Void) {
     DispatchQueue.global(qos: .background).async {
         unlink(socketPath)
 
@@ -12,9 +12,7 @@ func runSocketServer(onMessage: @escaping (String) -> Void) {
         var addr = sockaddr_un()
         addr.sun_family = sa_family_t(AF_UNIX)
         socketPath.withCString { src in
-            withUnsafeMutablePointer(to: &addr.sun_path.0) { dst in
-                _ = strcpy(dst, src)
-            }
+            withUnsafeMutablePointer(to: &addr.sun_path.0) { _ = strcpy($0, src) }
         }
 
         let bound = withUnsafePointer(to: &addr) {
@@ -43,19 +41,21 @@ func runSocketServer(onMessage: @escaping (String) -> Void) {
             if n > 0,
                let raw = String(bytes: buffer[0..<n], encoding: .utf8)?
                             .trimmingCharacters(in: .whitespacesAndNewlines),
-               let data = raw.data(using: .utf8),
-               let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let text = json["text"] as? String, !text.isEmpty
+               let msg = decodeSocketMessage(raw)
             {
-                onMessage(text)
+                onMessage(msg)
                 _ = "OK".withCString { send(clientFd, $0, 2, 0) }
+            } else {
+                _ = "Error".withCString { send(clientFd, $0, 5, 0) }
             }
             close(clientFd)
         }
     }
 }
 
-func cliSend(_ text: String) {
+// ── CLI send ───────────────────────────────────────────────────────────────────
+
+func cliSend(_ msg: TickerMessage) {
     guard FileManager.default.fileExists(atPath: socketPath) else {
         fputs("Error: ticker is not running.\n", stderr)
         exit(1)
@@ -71,12 +71,10 @@ func cliSend(_ text: String) {
             _ = connect(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size))
         }
     }
-    let payload = "{\"text\":\"\(text)\"}"
+    let payload = encodeSocketMessage(msg)
     payload.withCString { _ = send(fd, $0, strlen($0), 0) }
     var buf = [UInt8](repeating: 0, count: 64)
     let n = recv(fd, &buf, buf.count, 0)
-    if n > 0, let resp = String(bytes: buf[0..<n], encoding: .utf8) {
-        print(resp)
-    }
+    if n > 0, let resp = String(bytes: buf[0..<n], encoding: .utf8) { print(resp) }
     close(fd)
 }
