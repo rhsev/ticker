@@ -22,7 +22,7 @@ enum MessageKind: String, Codable {
 
 enum PauseKind {
     case timed(seconds: Double)
-    case sticky(onClickCommand: String?)
+    case sticky(onClickCommand: String?, blinks: Int)
 }
 
 struct TickerMessage {
@@ -71,8 +71,8 @@ func buildScrollStream(text: String, defaultColor: LEDColor,
                     case .color(let c):
                         color = c
                     case .pause(var k):
-                        if case .sticky(nil) = k, let cmd = onClickCommand {
-                            k = .sticky(onClickCommand: cmd)
+                        if case .sticky(nil, let b) = k, let cmd = onClickCommand {
+                            k = .sticky(onClickCommand: cmd, blinks: b)
                         }
                         pauses.append(PauseMarker(at: columns.count, kind: k))
                     case .glyph(let name):
@@ -130,7 +130,10 @@ private func parseCode(_ text: String, from start: String.Index) -> (ParsedCode,
     switch type {
     case "c": return (.color(LEDColor.from(content)), i)
     case "p":
-        if content == "sticky" { return (.pause(.sticky(onClickCommand: nil)), i) }
+        if content.hasPrefix("sticky") {
+            let blinks = content.hasPrefix("sticky:") ? Int(content.dropFirst(7)) ?? 2 : 2
+            return (.pause(.sticky(onClickCommand: nil, blinks: blinks)), i)
+        }
         if let s = Double(content) { return (.pause(.timed(seconds: s)), i) }
     case "g": return (.glyph(content.lowercased()), i)
     default: break

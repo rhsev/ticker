@@ -10,7 +10,7 @@ private enum Phase {
     case idle
     case scrolling                              // scrollIn + scrollOut in einem
     case pauseInStream(until: Date)             // \p[N] getriggert
-    case stickyBlink(phase: Int, until: Date, cmd: String?)  // 0-3: blink
+    case stickyBlink(phase: Int, until: Date, cmd: String?, blinks: Int)
     case stickyWait(cmd: String?)               // wartet auf Klick
     case defaultPause(until: Date)              // End-of-message Pause
     case standby(until: Date)                   // Standby-Text
@@ -176,10 +176,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 phase = .scrolling
             }
 
-        case .stickyBlink(let bphase, let until, let cmd):
+        case .stickyBlink(let bphase, let until, let cmd, let blinks):
             if Date() >= until {
                 let next = bphase + 1
-                if next >= 4 {
+                if next >= blinks * 2 {
                     showScrollFrame()
                     phase = .stickyWait(cmd: cmd)
                 } else {
@@ -187,7 +187,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     showScrollFrame(blank: !on)
                     phase = .stickyBlink(phase: next,
                                          until: Date().addingTimeInterval(blinkDuration),
-                                         cmd: cmd)
+                                         cmd: cmd, blinks: blinks)
                 }
             }
 
@@ -252,12 +252,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         switch kind {
         case .timed(let secs):
             phase = .pauseInStream(until: Date().addingTimeInterval(secs))
-        case .sticky(let cmd):
-            // 2 Blinks: 4 Phasen à blinkDuration
+        case .sticky(let cmd, let blinks):
             showScrollFrame(blank: true)
             phase = .stickyBlink(phase: 0,
                                   until: Date().addingTimeInterval(blinkDuration),
-                                  cmd: cmd)
+                                  cmd: cmd, blinks: blinks)
         }
     }
 
