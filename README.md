@@ -21,7 +21,7 @@ Copy the `ticker` binary to somewhere on your PATH, then launch it:
 
 ```bash
 cp ticker /usr/local/bin/ticker
-ticker &          # or open at login via a Launch Agent (see below)
+ticker &
 ```
 
 The app runs as a menu bar accessory (no Dock icon). It creates a Unix domain socket
@@ -29,25 +29,7 @@ at `/tmp/menubar_ticker.sock` and waits for commands.
 
 ### Auto-start at login
 
-Create `~/Library/LaunchAgents/com.user.ticker.plist`:
-
-```xml
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
-  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key>             <string>com.user.ticker</string>
-  <key>ProgramArguments</key>  <array><string>/usr/local/bin/ticker</string></array>
-  <key>RunAtLoad</key>         <true/>
-  <key>KeepAlive</key>         <true/>
-</dict>
-</plist>
-```
-
-```bash
-launchctl load ~/Library/LaunchAgents/com.user.ticker.plist
-```
+Add `ticker` under **System Settings → General → Login Items**.
 
 ---
 
