@@ -66,8 +66,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Menu nur über Rechtsklick öffnen; Linksklick geht an sticky
         statusItem.menu = nil
 
-        animTimer = Timer.scheduledTimer(withTimeInterval: config.scrollSpeed,
-                                         repeats: true) { [weak self] _ in self?.tick() }
+        let timer = Timer(timeInterval: config.scrollSpeed, repeats: true) { [weak self] _ in self?.tick() }
+        RunLoop.main.add(timer, forMode: .common)
+        animTimer = timer
 
         runSocketServer { [weak self] msg -> String in
             guard let self = self else { return "error" }

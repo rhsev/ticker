@@ -11,8 +11,9 @@ func runSocketServer(onMessage: @escaping (TickerMessage) -> String) {
 
         var addr = sockaddr_un()
         addr.sun_family = sa_family_t(AF_UNIX)
+        let pathSize = MemoryLayout.size(ofValue: addr.sun_path)
         socketPath.withCString { src in
-            withUnsafeMutablePointer(to: &addr.sun_path.0) { _ = strcpy($0, src) }
+            withUnsafeMutablePointer(to: &addr.sun_path.0) { _ = strlcpy($0, src, pathSize) }
         }
 
         let bound = withUnsafePointer(to: &addr) {
