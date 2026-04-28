@@ -67,6 +67,7 @@ Width persists until changed. Default is set in the config file.
 ```bash
 ticker --clear           # clear queue and stop current message
 ticker --status          # query current state (JSON)
+ticker --quit            # quit the app
 ```
 
 `--status` returns:
