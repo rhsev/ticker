@@ -2,7 +2,7 @@ import AppKit
 
 private let idleTitle  = "●"
 private let maxPending = 3
-private let blinkDuration = 0.15  // Sekunden pro Blink-Phase
+private let blinkDuration = 0.4   // Sekunden pro Blink-Phase
 
 // ── Animations-Phase ───────────────────────────────────────────────────────────
 
@@ -253,10 +253,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         case .timed(let secs):
             phase = .pauseInStream(until: Date().addingTimeInterval(secs))
         case .sticky(let cmd, let blinks):
-            showScrollFrame(blank: true)
-            phase = .stickyBlink(phase: 0,
-                                  until: Date().addingTimeInterval(blinkDuration),
-                                  cmd: cmd, blinks: blinks)
+            if blinks == 0 {
+                phase = .stickyWait(cmd: cmd)
+            } else {
+                showScrollFrame(blank: true)
+                phase = .stickyBlink(phase: 0,
+                                      until: Date().addingTimeInterval(blinkDuration),
+                                      cmd: cmd, blinks: blinks)
+            }
         }
     }
 

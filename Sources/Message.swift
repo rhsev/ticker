@@ -131,7 +131,7 @@ private func parseCode(_ text: String, from start: String.Index) -> (ParsedCode,
     case "c": return (.color(LEDColor.from(content)), i)
     case "p":
         if content.hasPrefix("sticky") {
-            let blinks = content.hasPrefix("sticky:") ? Int(content.dropFirst(7)) ?? 2 : 2
+            let blinks = content.hasPrefix("sticky:") ? Int(content.dropFirst(7)) ?? 0 : 0
             return (.pause(.sticky(onClickCommand: nil, blinks: blinks)), i)
         }
         if let s = Double(content) { return (.pause(.timed(seconds: s)), i) }
