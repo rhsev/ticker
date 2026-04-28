@@ -122,7 +122,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let vc = visCols(displayWidth: displayWidth)
 
             // Pause-Trigger prüfen (Spalte am linken Rand)
-            if let p = pendingPauses.first, p.at + vc == scrollOffset {
+            if let p = pendingPauses.first, p.at == scrollOffset {
                 pendingPauses.removeFirst()
                 triggerPause(p.kind)
                 return
@@ -132,7 +132,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             scrollOffset += 1
 
             // Ende: letzter sichtbarer Frame
-            if scrollOffset >= canvas.count - vc {
+            if canvas.count <= vc || scrollOffset >= canvas.count - vc {
                 phase = .idle
                 setIdle()
             }
