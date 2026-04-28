@@ -57,7 +57,6 @@ func buildScrollStream(text: String, defaultColor: LEDColor,
     var columns: [ColoredColumn] = []
     var pauses:  [PauseMarker]   = []
     var color    = defaultColor
-    var first    = true
     var i        = text.startIndex
 
     while i < text.endIndex {
@@ -76,9 +75,9 @@ func buildScrollStream(text: String, defaultColor: LEDColor,
                         pauses.append(PauseMarker(at: columns.count, kind: k))
                     case .glyph(let name):
                         if let vals = customChars[name] {
-                            if !first { columns.append(ColoredColumn(value: BLANK_COL, color: color)) }
-                            columns += vals.map { ColoredColumn(value: $0, color: color) }
-                            first = false
+                            var padded = vals
+                            while padded.count < 6 { padded.append(0x00) }
+                            columns += padded.map { ColoredColumn(value: $0, color: color) }
                         }
                     }
                     i = end
@@ -97,9 +96,11 @@ func buildScrollStream(text: String, defaultColor: LEDColor,
             vals = FONT[ch] ?? FONT[" "]!
         }
 
-        if !first { columns.append(ColoredColumn(value: BLANK_COL, color: color)) }
-        columns += vals.map { ColoredColumn(value: $0, color: color) }
-        first = false
+        // Pad to 6 columns so custom chars with fewer values still get a gap
+        var padded = vals
+        while padded.count < 6 { padded.append(0x00) }
+
+        columns += padded.map { ColoredColumn(value: $0, color: color) }
         i = text.index(after: i)
     }
 
