@@ -88,6 +88,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         case .setWidth:
             if let w = msg.width, w >= 5 { displayWidth = w }
             return "ok"
+        case .quit:
+            DispatchQueue.main.async { NSApp.terminate(nil) }
+            return "ok"
         case .clearQueue:
             queueLock.lock(); queue.removeAll(); queueLock.unlock()
             interrupted = nil
@@ -240,7 +243,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             setImage(img)
             phase = .standby(until: Date().addingTimeInterval(msg.duration))
 
-        case .setWidth, .clearQueue, .getStatus:
+        case .setWidth, .clearQueue, .getStatus, .quit:
             break
         }
     }

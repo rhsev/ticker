@@ -18,6 +18,7 @@ enum MessageKind: String, Codable {
     case scroll, standby, setWidth = "set_width"
     case clearQueue = "clear_queue"
     case getStatus  = "get_status"
+    case quit
 }
 
 enum PauseKind {

@@ -31,6 +31,13 @@ if CommandLine.arguments.count > 1 {
         cliSend(msg); exit(0)
     }
 
+    // --quit
+    if has(["--quit"]) {
+        let msg = TickerMessage(kind: .quit, text: "", priority: .normal,
+                                duration: 0, onClickCommand: nil, width: nil)
+        cliSend(msg); exit(0)
+    }
+
     // --status
     if has(["--status"]) {
         let msg = TickerMessage(kind: .getStatus, text: "", priority: .normal,
@@ -57,6 +64,7 @@ if CommandLine.arguments.count > 1 {
           ticker --width N
           ticker --clear
           ticker --status
+          ticker --quit
         """, stderr)
         exit(1)
     }
