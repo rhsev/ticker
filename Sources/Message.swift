@@ -16,6 +16,8 @@ enum Priority: String, Codable {
 
 enum MessageKind: String, Codable {
     case scroll, standby, setWidth = "set_width"
+    case clearQueue = "clear_queue"
+    case getStatus  = "get_status"
 }
 
 enum PauseKind {

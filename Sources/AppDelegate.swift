@@ -69,18 +69,33 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         animTimer = Timer.scheduledTimer(withTimeInterval: config.scrollSpeed,
                                          repeats: true) { [weak self] _ in self?.tick() }
 
-        runSocketServer { [weak self] msg in
-            DispatchQueue.main.async { self?.receive(msg) }
+        runSocketServer { [weak self] msg -> String in
+            guard let self = self else { return "error" }
+            if msg.kind == .getStatus {
+                return self.statusJSON()
+            }
+            var reply = "ok"
+            DispatchQueue.main.sync { reply = self.receive(msg) }
+            return reply
         }
     }
 
     // ── Empfang ────────────────────────────────────────────────────────────────
 
-    private func receive(_ msg: TickerMessage) {
+    @discardableResult
+    private func receive(_ msg: TickerMessage) -> String {
         switch msg.kind {
         case .setWidth:
             if let w = msg.width, w >= 5 { displayWidth = w }
-            return
+            return "ok"
+        case .clearQueue:
+            queueLock.lock(); queue.removeAll(); queueLock.unlock()
+            interrupted = nil
+            phase = .idle
+            setIdle()
+            return "ok"
+        case .getStatus:
+            return statusJSON()
         case .scroll, .standby:
             break
         }
@@ -91,12 +106,30 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         case .urgent:
             prependQueue(msg)
         case .veryUrgent:
-            // Laufende Nachricht abbrechen und speichern
             if case .scrolling = phase { interrupted = currentMsg }
             else if case .defaultPause = phase { interrupted = currentMsg }
             phase = .idle
             prependQueue(msg)
         }
+        return "ok"
+    }
+
+    // ── Status ─────────────────────────────────────────────────────────────────
+
+    private func statusJSON() -> String {
+        let phaseName: String
+        switch phase {
+        case .idle:                    phaseName = "idle"
+        case .scrolling:               phaseName = "scrolling"
+        case .pauseInStream:           phaseName = "scrolling"
+        case .defaultPause:            phaseName = "scrolling"
+        case .stickyBlink, .stickyWait: phaseName = "sticky"
+        case .standby:                 phaseName = "standby"
+        }
+        queueLock.lock()
+        let count = queue.count
+        queueLock.unlock()
+        return "{\"phase\":\"\(phaseName)\",\"queue\":\(count)}"
     }
 
     // ── Timer-Tick (Main-Thread) ───────────────────────────────────────────────
@@ -206,7 +239,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             setImage(img)
             phase = .standby(until: Date().addingTimeInterval(msg.duration))
 
-        case .setWidth:
+        case .setWidth, .clearQueue, .getStatus:
             break
         }
     }

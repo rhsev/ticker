@@ -2,7 +2,7 @@ import Foundation
 
 let socketPath = "/tmp/menubar_ticker.sock"
 
-func runSocketServer(onMessage: @escaping (TickerMessage) -> Void) {
+func runSocketServer(onMessage: @escaping (TickerMessage) -> String) {
     DispatchQueue.global(qos: .background).async {
         unlink(socketPath)
 
@@ -43,10 +43,10 @@ func runSocketServer(onMessage: @escaping (TickerMessage) -> Void) {
                             .trimmingCharacters(in: .whitespacesAndNewlines),
                let msg = decodeSocketMessage(raw)
             {
-                onMessage(msg)
-                _ = "OK".withCString { send(clientFd, $0, 2, 0) }
+                let reply = onMessage(msg)
+                reply.withCString { _ = send(clientFd, $0, strlen($0), 0) }
             } else {
-                _ = "Error".withCString { send(clientFd, $0, 5, 0) }
+                _ = "error".withCString { send(clientFd, $0, 5, 0) }
             }
             close(clientFd)
         }

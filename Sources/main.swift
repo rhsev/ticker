@@ -24,7 +24,21 @@ if CommandLine.arguments.count > 1 {
     let duration  = value(for: ["--duration"]).flatMap(Double.init) ?? 5.0
     let width     = value(for: ["--width"]).flatMap(Int.init)
 
-    // set_width
+    // --clear
+    if has(["--clear"]) {
+        let msg = TickerMessage(kind: .clearQueue, text: "", priority: .normal,
+                                duration: 0, onClickCommand: nil, width: nil)
+        cliSend(msg); exit(0)
+    }
+
+    // --status
+    if has(["--status"]) {
+        let msg = TickerMessage(kind: .getStatus, text: "", priority: .normal,
+                                duration: 0, onClickCommand: nil, width: nil)
+        cliSend(msg); exit(0)
+    }
+
+    // --width
     if let w = width, text == nil {
         let msg = TickerMessage(kind: .setWidth, text: "", priority: .normal,
                                 duration: 0, onClickCommand: nil, width: w)
@@ -41,6 +55,8 @@ if CommandLine.arguments.count > 1 {
           ticker --standby-urgent TEXT --duration N
           ticker --standby-very-urgent TEXT --duration N
           ticker --width N
+          ticker --clear
+          ticker --status
         """, stderr)
         exit(1)
     }
