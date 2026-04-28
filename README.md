@@ -23,7 +23,7 @@ Copy the `ticker` binary to somewhere on your PATH, then launch it:
 
 ```bash
 cp ticker /usr/local/bin/ticker
-xattr -d com.apple.quarantine /usr/local/bin/ticker
+xattr -d com.apple.quarantine /usr/local/bin/ticker  # bypass Gatekeeper
 ticker &
 ```
 
