@@ -85,6 +85,38 @@ if CommandLine.arguments.count > 1 {
 
 // ── App-Modus ──────────────────────────────────────────────────────────────────
 
+// Bereits laufende Instanz erkennen: Socket-Datei vorhanden + connect erfolgreich → exit
+if FileManager.default.fileExists(atPath: socketPath) {
+    let checkFd = socket(AF_UNIX, SOCK_STREAM, 0)
+    if checkFd >= 0 {
+        var checkAddr = sockaddr_un()
+        checkAddr.sun_family = sa_family_t(AF_UNIX)
+        let pathSize = MemoryLayout.size(ofValue: checkAddr.sun_path)
+        socketPath.withCString { src in
+            withUnsafeMutablePointer(to: &checkAddr.sun_path.0) { _ = strlcpy($0, src, pathSize) }
+        }
+        let connected = withUnsafePointer(to: &checkAddr) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                connect(checkFd, $0, socklen_t(MemoryLayout<sockaddr_un>.size))
+            }
+        } == 0
+        if connected {
+            // Gültigen Request senden damit der Server sauber abhandelt
+            let ping = "{\"type\":\"get_status\"}\n"
+            ping.withCString { _ = send(checkFd, $0, strlen($0), 0) }
+            var buf = [UInt8](repeating: 0, count: 64)
+            _ = recv(checkFd, &buf, buf.count, 0)
+            close(checkFd)
+            fputs("ticker: already running\n", stderr)
+            exit(0)
+        } else {
+            // Veraltete Socket-Datei entfernen
+            close(checkFd)
+            unlink(socketPath)
+        }
+    }
+}
+
 let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
 let delegate = AppDelegate()
