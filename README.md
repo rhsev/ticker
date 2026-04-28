@@ -1,6 +1,6 @@
-# ticker
+<img src="logo.png" width="40">
 
-<img src="logo.png" width="40" align="right">
+# ticker
 
 A retro LED dot-matrix ticker for the macOS menu bar, controlled from the command line.
 
