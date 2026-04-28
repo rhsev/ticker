@@ -6,8 +6,6 @@ Text scrolls across a simulated LED dot-matrix display — black background, amb
 uppercase letters. Driven entirely from the command line; the app itself has no UI
 beyond the display strip.
 
-![ticker in the menu bar](screenshot.png)
-
 ---
 
 ## Requirements
@@ -105,6 +103,19 @@ ticker --send "STATUS \c[green]OK\c[amber] ALL CLEAR"
 ticker --send "\c[red]ERROR \c[white]disk full on \c[yellow]backup-01"
 ```
 
+### Glyph
+
+```
+\g[name]     render a named custom glyph from config
+```
+
+```bash
+ticker --send "SCORE \g[star] 9999"
+ticker --send "I \g[heart] SWIFT"
+```
+
+Glyphs are defined in `custom_chars` in the config file (see below).
+
 ### Pause
 
 ```
@@ -167,16 +178,40 @@ Right-click the ticker to access:
 | `default_pause` | Seconds to hold when the message is fully visible (default 3) |
 | `custom_chars` | Extra glyphs as 5-column bitmaps (see below) |
 
-### Custom characters
+### Custom glyphs
+
+Glyphs are referenced by name via `\g[name]` in messages:
 
 ```json
-"custom_chars": {
-  "★": [8, 28, 127, 28, 8],
-  "♥": [14, 31, 31, 14, 4]
+"customChars": {
+  "star":  [4, 14, 31, 14, 4],
+  "heart": [6, 15, 30, 15, 6]
 }
 ```
 
-Each value is an array of 5 column bytes (8 rows each, bit 0 = top row).
+Each value is an array of 5 column bytes (8 rows, bit 0 = top row).
+
+To design a glyph, create a `.led` file — 8 rows × 5 columns, `X` for lit, `.` for dark:
+
+```
+..X..
+.XXX.
+XXXXX
+.XXX.
+..X..
+.....
+.....
+.....
+```
+
+Then convert with the included tool:
+
+```bash
+bash tools/make_char.sh tools/glyphs/star.led star
+# → "star": [4, 14, 31, 14, 4]
+```
+
+Example glyphs are in `tools/glyphs/`.
 
 ---
 
