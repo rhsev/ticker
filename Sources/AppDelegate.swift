@@ -1,6 +1,5 @@
 import AppKit
 
-private let idleTitle  = "●"
 private let maxPending = 3
 private let blinkDuration = 0.4   // Sekunden pro Blink-Phase
 
@@ -48,7 +47,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         displayWidth = config.defaultWidth
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        statusItem.button?.title = idleTitle
+        statusItem.button?.title = ""
 
         // Klick-Handler (für sticky)
         statusItem.button?.action = #selector(statusItemClicked)
@@ -297,8 +296,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func setIdle() {
-        statusItem.button?.image = nil
-        statusItem.button?.title = idleTitle
+        let icon = renderIdleIcon(color: LEDColor.from(config.defaultColor))
+        setImage(icon)
     }
 
     // ── Queue ──────────────────────────────────────────────────────────────────

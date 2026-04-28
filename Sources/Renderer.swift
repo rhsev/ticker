@@ -68,6 +68,32 @@ func renderScrollFrame(columns: [ColoredColumn], offset: Int,
     return img
 }
 
+// ── Idle-Icon (T aus LED-Punkten) ─────────────────────────────────────────────
+
+func renderIdleIcon(color: LEDColor) -> NSImage {
+    let cols = FONT[Character("<")] ?? Array(repeating: 0, count: 5)
+    let w    = paddingH * 2 + 5 * colW - ledGap
+    let img  = NSImage(size: NSSize(width: Double(w), height: Double(imgH)))
+    img.lockFocus()
+
+    NSColor.black.set()
+    NSBezierPath.fill(NSRect(x: 0, y: 0, width: Double(w), height: Double(imgH)))
+
+    for ci in 0..<5 {
+        let x = Double(paddingH + ci * colW)
+        for bit in 0..<ledRows {
+            let on = (cols[ci] & (1 << bit)) != 0
+            let y  = Double(paddingV + (ledRows - 1 - bit) * rowH)
+            (on ? nsColor(color) : colorOff).set()
+            NSBezierPath.fill(NSRect(x: x, y: y, width: Double(ledSize), height: Double(ledSize)))
+        }
+    }
+
+    img.unlockFocus()
+    img.isTemplate = false
+    return img
+}
+
 // ── Standby-Frame (links-ausgerichtet, geclippt) ───────────────────────────────
 
 func renderStandbyFrame(text: String, displayWidth: Int,
