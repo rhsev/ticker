@@ -1,10 +1,10 @@
 # ticker
 
-A retro LED ticker for the macOS menu bar.
+<img src="logo.png" width="40" align="right">
 
-Text scrolls across a simulated LED dot-matrix display — black background, amber glow,
-uppercase letters. Driven entirely from the command line; the app itself has no UI
-beyond the display strip.
+A retro LED dot-matrix ticker for the macOS menu bar, controlled from the command line.
+
+![ticker in the menu bar](screenshot.png)
 
 ---
 
