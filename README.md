@@ -80,6 +80,21 @@ ticker --width 10    # compact (minimum: 5)
 
 Width persists until changed. Default is set in the config file.
 
+### Queue control
+
+```bash
+ticker --clear           # clear queue and stop current message
+ticker --status          # query current state (JSON)
+```
+
+`--status` returns:
+
+```json
+{"phase":"scrolling","queue":2}
+```
+
+Possible `phase` values: `idle`, `scrolling`, `sticky`, `standby`.
+
 ---
 
 ## Inline control codes
