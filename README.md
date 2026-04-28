@@ -134,18 +134,19 @@ Glyphs are defined in `custom_chars` in the config file (see below).
 ### Pause
 
 ```
-\p[N]        pause N seconds when this point reaches the left edge
-\p[sticky]   pause until the user clicks the status item
+\p[N]          pause N seconds when this point reaches the left edge
+\p[sticky]     pause until the user clicks the status item
+\p[sticky:N]   pause with N blinks before waiting (e.g. \p[sticky:3])
 ```
 
 The pause triggers when it scrolls into the leftmost visible column, so the
 preceding text is fully readable before the hold takes effect.
 
-When `\p[sticky]` activates, the display blinks twice to signal that a click
-is expected. An optional shell command runs on click:
+When `\p[sticky:N]` activates, the display blinks N times to draw attention,
+then holds the text until the user clicks. An optional shell command runs on click:
 
 ```bash
-ticker --send "BUILD FAILED \p[sticky]" --on-click "open -a Xcode"
+ticker --send "BUILD FAILED \p[sticky:3]" --on-click "open -a Xcode"
 ticker --send "DEPLOY DONE \p[3] RESTARTING..."
 ```
 
