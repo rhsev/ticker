@@ -6,7 +6,7 @@ A retro LED dot-matrix ticker for the macOS menu bar, controlled from the comman
 
 Each character is stored as six 8-bit glyph columns, five pixels wide plus one gap column. Scrolling advances the canvas by exactly one column per tick, so the animation is pixel-smooth without any font rendering. The same bitmap font drives the display and the custom glyph system. Well, like a real ancient LED matrix display.
 
-https://github.com/user-attachments/assets/6110c10a-e1f4-4d66-89d5-2c61613ba4aa
+![ticker demo](demo.gif)
 
 ![ticker in the menu bar](screenshot.png)
 
