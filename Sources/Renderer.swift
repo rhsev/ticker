@@ -24,7 +24,7 @@ func nsColor(_ c: LEDColor) -> NSColor {
     }
 }
 
-let colorOff = NSColor(red: 0.08, green: 0.06, blue: 0.0, alpha: 1.0)
+let colorOff = NSColor(red: 0.15, green: 0.11, blue: 0.0, alpha: 1.0)
 
 // ── Hilfsfunktionen ────────────────────────────────────────────────────────────
 
