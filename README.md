@@ -4,6 +4,8 @@
 
 A retro LED dot-matrix ticker for the macOS menu bar, controlled from the command line.
 
+Each character is stored as six 8-bit column font characters — five pixels wide plus one gap column. Scrolling advances the canvas by exactly one column per tick, so the animation is pixel-smooth without any font rendering, layout engine, or kerning. The same bitmap font drives the display, the idle icon, and the custom glyph system. This is how real LED matrix displays work.
+
 ![ticker in the menu bar](screenshot.png)
 
 ---
