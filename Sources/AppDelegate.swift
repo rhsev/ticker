@@ -180,6 +180,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if Date() >= until {
                 let next = bphase + 1
                 if next >= 4 {
+                    showScrollFrame()
                     phase = .stickyWait(cmd: cmd)
                 } else {
                     let on = (next % 2 == 0)
