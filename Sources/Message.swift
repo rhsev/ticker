@@ -64,7 +64,7 @@ func buildScrollStream(text: String, defaultColor: LEDColor,
         // Control code?
         if text[i] == "\\", text.index(after: i) < text.endIndex {
             let ni = text.index(after: i)
-            if text[ni] == "c" || text[ni] == "p" {
+            if text[ni] == "c" || text[ni] == "p" || text[ni] == "g" {
                 if let (code, end) = parseCode(text, from: i) {
                     switch code {
                     case .color(let c):
@@ -74,6 +74,12 @@ func buildScrollStream(text: String, defaultColor: LEDColor,
                             k = .sticky(onClickCommand: cmd)
                         }
                         pauses.append(PauseMarker(at: columns.count, kind: k))
+                    case .glyph(let name):
+                        if let vals = customChars[name] {
+                            if !first { columns.append(ColoredColumn(value: BLANK_COL, color: color)) }
+                            columns += vals.map { ColoredColumn(value: $0, color: color) }
+                            first = false
+                        }
                     }
                     i = end
                     continue
@@ -103,6 +109,7 @@ func buildScrollStream(text: String, defaultColor: LEDColor,
 private enum ParsedCode {
     case color(LEDColor)
     case pause(PauseKind)
+    case glyph(String)
 }
 
 private func parseCode(_ text: String, from start: String.Index) -> (ParsedCode, String.Index)? {
@@ -122,6 +129,7 @@ private func parseCode(_ text: String, from start: String.Index) -> (ParsedCode,
     case "p":
         if content == "sticky" { return (.pause(.sticky(onClickCommand: nil)), i) }
         if let s = Double(content) { return (.pause(.timed(seconds: s)), i) }
+    case "g": return (.glyph(content.lowercased()), i)
     default: break
     }
     return nil
