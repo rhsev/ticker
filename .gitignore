@@ -1,3 +1,4 @@
 .build/
 *.zip
 ticker-v2/
+.DS_Store
