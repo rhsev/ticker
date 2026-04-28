@@ -176,7 +176,7 @@ Right-click the ticker to access:
 | `default_width` | Visible character columns (default 20) |
 | `scroll_speed` | Seconds per pixel column (default 0.05 = fast) |
 | `default_pause` | Seconds to hold when the message is fully visible (default 3) |
-| `custom_chars` | Extra glyphs as 5-column bitmaps (see below) |
+| `custom_chars` | Extra glyphs as 6-column bitmaps (see below) |
 
 ### Custom glyphs
 
@@ -184,24 +184,26 @@ Glyphs are referenced by name via `\g[name]` in messages:
 
 ```json
 "customChars": {
-  "star":  [4, 14, 31, 14, 4],
-  "heart": [6, 15, 30, 15, 6]
+  "star":  [4, 14, 31, 14, 4, 0],
+  "heart": [6, 15, 30, 15, 6, 0]
 }
 ```
 
-Each value is an array of 5 column bytes (8 rows, bit 0 = top row).
+Each value is an array of 6 column bytes (8 rows, bit 0 = top row). Column 6 is the
+trailing gap — use `0` for normal spacing, or non-zero to connect two glyphs seamlessly
+into a wider symbol: `\g[left]\g[right]`.
 
-To design a glyph, create a `.led` file — 8 rows × 5 columns, `X` for lit, `.` for dark:
+To design a glyph, create a `.led` file — 8 rows × 6 columns, `X` for lit, `.` for dark:
 
 ```
-..X..
-.XXX.
-XXXXX
-.XXX.
-..X..
-.....
-.....
-.....
+..X...
+.XXX..
+XXXXX.
+.XXX..
+..X...
+......
+......
+......
 ```
 
 Then convert with the included tool:
