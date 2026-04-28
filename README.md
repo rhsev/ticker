@@ -242,12 +242,3 @@ swift build -c release
 
 Requires Xcode Command Line Tools (`xcode-select --install`).
 
----
-
-## What is not supported
-
-- Lowercase letters (uppercase only — authentic to historical LED displays)
-- Rich text, markdown, images
-- More than 5 colors
-- Persistent message history
-- Font size changes
