@@ -183,7 +183,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     showScrollFrame()
                     phase = .stickyWait(cmd: cmd)
                 } else {
-                    let on = (next % 2 == 0)
+                    let on = (next % 2 != 0)
                     showScrollFrame(blank: !on)
                     phase = .stickyBlink(phase: next,
                                          until: Date().addingTimeInterval(blinkDuration),
