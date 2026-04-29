@@ -8,6 +8,12 @@ Not a gimmick. A tool for urgent messages that need to be noticed. Motion catche
 
 When a message arrives, the ticker appears in the menu bar and scrolls through all queued messages in sequence. Then it disappears or stays and waits for acknowledgment.
 
+**Quick example**
+
+```bash
+ticker --very-urgent "BUILD FAILED \p[sticky:3]"
+```
+
 Each character is stored as six 8-bit glyph columns, five pixels wide plus one gap column. Scrolling advances the canvas by exactly one column per tick, so the animation is pixel-smooth without any font rendering, which keeps CPU load negligible. The same bitmap font drives the display and the custom glyph system. Like a real ancient LED matrix display.
 
 ![ticker demo](demo.gif)
