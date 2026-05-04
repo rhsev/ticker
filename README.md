@@ -20,7 +20,7 @@ ticker --send "HELLO WORLD!"
 
 Each character is stored as six 8-bit glyph columns, five pixels wide plus one gap column, derived from the classic Adafruit GFX 5×7 bitmap font. Scrolling advances the canvas by exactly one column per tick, so the animation is pixel-smooth without any font rendering, which keeps CPU load very low. The same bitmap font drives the display and the custom glyph system. Like a real LED matrix display.
 
-For a technical deep-dive see [ARCHITECTURE.md](ARCHITECTURE.md).
+For a technical deep-dive see [TECHNICAL.md](TECHNICAL.md).
 
 ---
 
