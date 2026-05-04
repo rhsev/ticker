@@ -1,22 +1,27 @@
-<img src="logo.png" width="40">
-
 # ticker
 
-A retro LED-style ticker for the macOS menu bar, controlled from the command line.
+A LED-style ticker for the macOS menu bar, controlled from the command line.
 
-Not a gimmick. A tool for urgent messages that need to be noticed. Motion catches the eye. Notifications don't.
+Motion catches the eye. Notifications don't. ticker scrolls urgent messages through the menu bar, and the movement is what makes them register.
+
+The LED dot-matrix style amplifies this further. There is no font pipeline: text is composed from a bitmap table, easy enough to scroll at 20 fps with negligible CPU load.
 
 When a message arrives, the ticker appears in the menu bar and scrolls through all queued messages in sequence. Then it disappears or stays and waits for acknowledgment.
+
+Retro, but not a gimmick.
 
 **Quick example**
 
 ```bash
-ticker --very-urgent "BUILD FAILED \p[sticky:3]"
+ticker --send "HELLO WORLD"
 ```
 
-Each character is stored as six 8-bit glyph columns, five pixels wide plus one gap column. Scrolling advances the canvas by exactly one column per tick, so the animation is pixel-smooth without any font rendering, which keeps CPU load negligible. The same bitmap font drives the display and the custom glyph system. Like a real ancient LED matrix display.
-
 ![ticker demo](demo.gif)
+
+Each character is stored as six 8-bit glyph columns, five pixels wide plus one gap column, derived from the classic Adafruit GFX 5×7 bitmap font. Scrolling advances the canvas by exactly one column per tick, so the animation is pixel-smooth without any font rendering, which keeps CPU load very low. The same bitmap font drives the display and the custom glyph system. Like a real LED matrix display.
+
+For a technical deep-dive see [ARCHITECTURE.md](ARCHITECTURE.md).
+
 ---
 
 ## Requirements
