@@ -13,7 +13,7 @@ Retro, but not a gimmick.
 **Quick example**
 
 ```bash
-ticker --send "HELLO WORLD"
+ticker --send "HELLO WORLD!"
 ```
 
 ![ticker demo](demo.gif)
