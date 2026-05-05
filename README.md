@@ -242,3 +242,7 @@ swift build -c release
 
 Requires Xcode Command Line Tools (`xcode-select --install`).
 
+<head>
+<title>Startseite von beispiel.de</title>
+<meta name="google-site-verification" content="6RyZRVCSM37ZpveWn8jrPCptNcFmo6uUZGA8X203NVU" />
+</head>
