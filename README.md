@@ -33,12 +33,12 @@ For a technical deep-dive see [TECHNICAL.md](TECHNICAL.md).
 
 ## Installation
 
-Copy the `ticker` binary to somewhere on your PATH, then launch it:
+Download the binary from the [latest release](https://github.com/rhsev/ticker/releases/latest), then:
 
 ```bash
-cp ticker /usr/local/bin/ticker
+cp ~/Downloads/ticker /usr/local/bin/ticker
 xattr -d com.apple.quarantine /usr/local/bin/ticker  # bypass Gatekeeper
-ticker &
+ticker &                                             # & starts it in the background
 ```
 
 The app runs as a menu bar accessory (no Dock icon). It creates a Unix domain socket

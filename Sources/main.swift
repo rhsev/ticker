@@ -117,6 +117,7 @@ if FileManager.default.fileExists(atPath: socketPath) {
     }
 }
 
+
 let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
 let delegate = AppDelegate()
