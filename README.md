@@ -16,7 +16,13 @@ NEW: Now supports transparent background mode for a native menu bar look.
 ticker --send "HELLO WORLD!"
 ```
 
+LED mode with black background:
+
 ![ticker demo](demo.gif)
+
+Transparent mode — adapts to your menu bar:
+
+![ticker transparent](screenshot_transparent.png)
 
 Each character is stored as six 8-bit glyph columns, five pixels wide plus one gap column, derived from the classic Adafruit GFX 5×7 bitmap font. Scrolling advances the canvas by exactly one column per tick, so the animation is pixel-smooth without any font rendering, which keeps CPU load very low. The same bitmap font drives the display and the custom glyph system. Like a real LED matrix display.
 
