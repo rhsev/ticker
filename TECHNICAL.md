@@ -2,15 +2,13 @@
 
 ## No font rendering
 
-Motion is perceptible in a way that static text is not. Notifications get dismissed unread, but movement in the corner of your eye registers. Scrolling text in the menu bar exploits this, and the LED matrix style amplifies it further: the dot pattern draws attention even before the content is read.
-
 A menu bar app runs permanently in the background, so the rendering approach matters. CoreText would work, but it brings font loading, glyph metrics, and subpixel rasterization to something that runs at 20 fps.
 
 The alternative: a bitmap table. Every character is stored as six bytes in a `[Character: [UInt8]]` dictionary, derived from the Adafruit GFX 5×7 font — a format originally designed for embedded LED matrix panels, which is the right level of detail for a small menu bar display. Each byte is one column of eight pixels, bit 0 at the top. Rendering a frame means a lookup and a few `NSBezierPath` calls. The LED matrix aesthetic is a consequence of this approach, not the starting point.
 
 The off-LEDs are not black. They use a dark amber `(0.15, 0.11, 0.0)` to simulate the faintly visible unlit dots of a physical LED panel.
 
-## The 6-column trick
+## 6-columns per glyph
 
 Standard bitmap fonts are 5 pixels wide. ticker uses 6 columns per glyph. The sixth is a trailing gap, normally zero. Putting the gap inside the glyph rather than inserting it dynamically between characters has a useful consequence: two consecutive glyphs can share their boundary. `\g[left]\g[right]` renders as one seamless symbol because the sixth column of the left part becomes part of the combined shape instead of empty space.
 
