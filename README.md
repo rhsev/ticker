@@ -1,6 +1,6 @@
 # ticker
 
-A LED-style ticker for the macOS menu bar, controlled from the command line.
+A LED-style ticker for the macOS menu bar, controlled from the command line. 
 
 Motion catches the eye. Notifications don't. ticker scrolls urgent messages through the menu bar, and the movement is what makes them register.
 
@@ -8,7 +8,7 @@ The LED dot-matrix style amplifies this further. There is no font pipeline: text
 
 When a message arrives, the ticker appears in the menu bar and scrolls through all queued messages in sequence. Then it disappears or stays and waits for acknowledgment.
 
-Retro, but not a gimmick.
+NEW: Now supports transparent background mode for a native menu bar look.
 
 **Quick example**
 
@@ -192,6 +192,7 @@ Right-click the ticker to access:
 | `default_width` | Visible character columns (default 20) |
 | `scroll_speed` | Seconds per pixel column (default 0.05 = fast) |
 | `default_pause` | Seconds to hold when the message is fully visible (default 3) |
+| `transparent` | `true` for transparent background with system text color — works well on dark or coloured menu bars (default `false`) |
 | `custom_chars` | Extra glyphs as 6-column bitmaps (see below) |
 
 ### Custom glyphs
