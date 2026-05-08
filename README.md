@@ -149,7 +149,11 @@ The pause triggers when it scrolls into the leftmost visible column, so the
 preceding text is fully readable before the hold takes effect.
 
 When `\p[sticky:N]` activates, the display blinks N times to draw attention,
-then holds the text until the user clicks. An optional shell command runs on click:
+then holds the text until the user clicks.
+
+### Optional shell command on click
+
+An optional shell command runs when the user clicks the sticky item:
 
 ```bash
 ticker --send "BUILD FAILED \p[sticky:3]" --on-click "open -a Xcode"
