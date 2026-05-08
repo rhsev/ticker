@@ -43,8 +43,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // ── Setup ──────────────────────────────────────────────────────────────────
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        config       = loadConfig()
-        displayWidth = config.defaultWidth
+        config           = loadConfig()
+        displayWidth     = config.defaultWidth
+        renderTransparent = config.transparent
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem.button?.title = ""

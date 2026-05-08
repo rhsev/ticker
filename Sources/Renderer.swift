@@ -26,6 +26,11 @@ func nsColor(_ c: LEDColor) -> NSColor {
 
 let colorOff = NSColor(red: 0.15, green: 0.11, blue: 0.0, alpha: 1.0)
 
+// Transparenter Modus — gesetzt aus Config beim Start
+var renderTransparent = false
+private let paddingTop  = 3
+private let imgHtransparent = ledRows * rowH - ledGap + paddingTop
+
 // ── Hilfsfunktionen ────────────────────────────────────────────────────────────
 
 func imgWidth(displayWidth: Int) -> Int {
@@ -36,18 +41,49 @@ func visCols(displayWidth: Int) -> Int {
     displayWidth * colsPerChar
 }
 
+// ── Transparentes Rendering (exakt wie ticker_2) ───────────────────────────────
+
+private func drawDots(columns: [ColoredColumn], visibleCols: Int, offset: Int) {
+    NSColor.black.set()
+    for ci in 0..<visibleCols {
+        let si = offset + ci
+        guard si < columns.count else { break }
+        let col = columns[si]
+        let x   = Double(paddingH + ci * colW)
+        for bit in 0..<ledRows {
+            guard (col.value & (1 << bit)) != 0 else { continue }
+            let y = Double((ledRows - 1 - bit) * rowH)
+            NSBezierPath.fill(NSRect(x: x, y: y, width: Double(ledSize), height: Double(ledSize)))
+        }
+    }
+}
+
+private func renderTransparentFrame(columns: [ColoredColumn], offset: Int,
+                                     displayWidth: Int, blank: Bool) -> NSImage {
+    let vc  = visCols(displayWidth: displayWidth)
+    let w   = imgWidth(displayWidth: displayWidth)
+    let img = NSImage(size: NSSize(width: Double(w), height: Double(imgHtransparent)))
+    img.lockFocus()
+    NSColor.clear.set()
+    NSBezierPath.fill(NSRect(x: 0, y: 0, width: Double(w), height: Double(imgHtransparent)))
+    if !blank { drawDots(columns: columns, visibleCols: vc, offset: offset) }
+    img.unlockFocus()
+    img.isTemplate = true
+    return img
+}
+
 // ── Scroll-Frame ───────────────────────────────────────────────────────────────
 
 func renderScrollFrame(columns: [ColoredColumn], offset: Int,
                        displayWidth: Int, blank: Bool = false) -> NSImage {
+    if renderTransparent { return renderTransparentFrame(columns: columns, offset: offset,
+                                                         displayWidth: displayWidth, blank: blank) }
     let vc  = visCols(displayWidth: displayWidth)
     let w   = imgWidth(displayWidth: displayWidth)
     let img = NSImage(size: NSSize(width: Double(w), height: Double(imgH)))
     img.lockFocus()
-
     NSColor.black.set()
     NSBezierPath.fill(NSRect(x: 0, y: 0, width: Double(w), height: Double(imgH)))
-
     if !blank {
         for ci in 0..<vc {
             let si = offset + ci
@@ -62,7 +98,6 @@ func renderScrollFrame(columns: [ColoredColumn], offset: Int,
             }
         }
     }
-
     img.unlockFocus()
     img.isTemplate = false
     return img
@@ -71,14 +106,23 @@ func renderScrollFrame(columns: [ColoredColumn], offset: Int,
 // ── Idle-Icon (T aus LED-Punkten) ─────────────────────────────────────────────
 
 func renderIdleIcon(color: LEDColor) -> NSImage {
-    let cols = FONT[Character("<")] ?? Array(repeating: 0, count: 5)
-    let w    = paddingH * 2 + 5 * colW - ledGap
-    let img  = NSImage(size: NSSize(width: Double(w), height: Double(imgH)))
+    let cols  = FONT[Character("<")] ?? Array(repeating: 0, count: 5)
+    let dummy = cols.map { ColoredColumn(value: $0, color: .white) }
+    let w     = paddingH * 2 + 5 * colW - ledGap
+    if renderTransparent {
+        let img = NSImage(size: NSSize(width: Double(w), height: Double(imgHtransparent)))
+        img.lockFocus()
+        NSColor.clear.set()
+        NSBezierPath.fill(NSRect(x: 0, y: 0, width: Double(w), height: Double(imgHtransparent)))
+        drawDots(columns: dummy, visibleCols: 5, offset: 0)
+        img.unlockFocus()
+        img.isTemplate = true
+        return img
+    }
+    let img = NSImage(size: NSSize(width: Double(w), height: Double(imgH)))
     img.lockFocus()
-
     NSColor.black.set()
     NSBezierPath.fill(NSRect(x: 0, y: 0, width: Double(w), height: Double(imgH)))
-
     for ci in 0..<5 {
         let x = Double(paddingH + ci * colW)
         for bit in 0..<ledRows {
@@ -88,7 +132,6 @@ func renderIdleIcon(color: LEDColor) -> NSImage {
             NSBezierPath.fill(NSRect(x: x, y: y, width: Double(ledSize), height: Double(ledSize)))
         }
     }
-
     img.unlockFocus()
     img.isTemplate = false
     return img

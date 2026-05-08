@@ -6,6 +6,7 @@ struct TickerConfig: Codable {
     var scrollSpeed:  Double = 0.05
     var defaultPause: Double = 3.0
     var customChars:  [String: [UInt8]] = [:]
+    var transparent:  Bool              = false
 }
 
 private let configURL: URL = {
