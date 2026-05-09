@@ -2,9 +2,7 @@
 
 A LED-style ticker for the macOS menu bar, controlled from the command line. 
 
-Motion catches the eye. Notifications don't. ticker scrolls urgent messages through the menu bar, and the movement is what makes them register.
-
-The LED dot-matrix style amplifies this further. There is no font pipeline: text is composed from a bitmap table, easy enough to scroll at 20 fps with negligible CPU load.
+Notifications can be overlooked. Motion catches the eye. ticker scrolls urgent messages through the menu bar, and the movement is what makes them register. The LED dot-matrix style amplifies this. There is no font pipeline: text is composed from a bitmap table, easy enough to scroll at 20 fps with negligible CPU load.
 
 When a message arrives, the ticker appears in the menu bar and scrolls through all queued messages in sequence. Then it disappears or stays and waits for acknowledgment.
 
