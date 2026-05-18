@@ -28,6 +28,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var displayWidth: Int = 20
     private var phase: Phase = .idle
     private var userPaused = false
+    private var idleRendered = false
 
     // Aktuelle Scroll-Animation
     private var canvas:      [ColoredColumn] = []
@@ -213,6 +214,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // ── Nachricht starten ──────────────────────────────────────────────────────
 
     private func startMessage(_ msg: TickerMessage) {
+        idleRendered = false
         currentMsg = msg
         let defColor = LEDColor.from(config.defaultColor)
 
@@ -300,6 +302,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func setIdle() {
+        guard !idleRendered else { return }
+        idleRendered = true
         let icon = renderIdleIcon(color: LEDColor.from(config.defaultColor))
         setImage(icon)
     }
