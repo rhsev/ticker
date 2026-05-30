@@ -1,6 +1,6 @@
 # ticker
 
-A LED-style ticker for the macOS menu bar, controlled from the command line. 
+A LED dot-matrix ticker for the macOS menu bar, controlled from the command line. Also handles `milan://` URL schemes for [mi.lan](https://github.com/rhsev/mi.lan).
 
 Notifications can be overlooked. Motion catches the eye. ticker scrolls urgent messages through the menu bar, and the movement is what makes them register. The LED dot-matrix style amplifies this. There is no font pipeline: text is composed from a bitmap table, easy enough to scroll at 20 fps with negligible CPU load.
 
