@@ -1,12 +1,18 @@
 import Foundation
 
 struct TickerConfig: Codable {
-    var defaultColor: String = "amber"
-    var defaultWidth: Int    = 20
-    var scrollSpeed:  Double = 0.05
-    var defaultPause: Double = 3.0
-    var customChars:  [String: [UInt8]] = [:]
-    var transparent:  Bool              = false
+    // Ticker display
+    var tickerEnabled:     Bool              = true
+    var defaultColor:      String            = "amber"
+    var defaultWidth:      Int               = 20
+    var scrollSpeed:       Double            = 0.05
+    var defaultPause:      Double            = 3.0
+    var customChars:       [String: [UInt8]] = [:]
+    var transparent:       Bool              = true
+
+    // Milan URL-scheme helper (optional — activate by setting milanctlPath)
+    var milanctlPath: String = ""
+    var milanPort:    Int    = 8080
 }
 
 private let configURL: URL = {

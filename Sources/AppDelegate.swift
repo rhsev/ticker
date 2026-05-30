@@ -21,8 +21,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private var statusItem: NSStatusItem!
     private var animTimer:  Timer?
+    private var pauseItem:  NSMenuItem?
     private var config:     TickerConfig!
-    private var pauseItem:  NSMenuItem!
+
+    // Milan state
+    private var milanInstalled = false
+    private var milanRunning   = false
+    private var statusTimer:   Timer?
 
     // Zustand
     private var displayWidth: Int = 20
@@ -51,41 +56,225 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem.button?.title = ""
 
-        // Klick-Handler (für sticky)
+        // Klick-Handler
         statusItem.button?.action = #selector(statusItemClicked)
         statusItem.button?.target = self
         statusItem.button?.sendAction(on: [.leftMouseUp])
 
-        let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "Clear queue", action: #selector(clearQueue), keyEquivalent: ""))
-        menu.addItem(.separator())
-        pauseItem = NSMenuItem(title: "Pause", action: #selector(togglePause), keyEquivalent: "")
-        menu.addItem(pauseItem)
-        menu.addItem(.separator())
-        menu.addItem(NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q"))
-        for item in menu.items { item.target = self }
-        // Menu nur über Rechtsklick öffnen; Linksklick geht an sticky
-        statusItem.menu = nil
+        // Milan-Status (nur wenn milanctlPath gesetzt)
+        if !config.milanctlPath.isEmpty {
+            checkMilanStatus()
+            let t = Timer(timeInterval: 5, repeats: true) { [weak self] _ in
+                self?.checkMilanStatus()
+            }
+            RunLoop.main.add(t, forMode: .common)
+            statusTimer = t
+        }
 
-        let timer = Timer(timeInterval: config.scrollSpeed, repeats: true) { [weak self] _ in self?.tick() }
+        // Animations-Timer (immer aktiv; tick() prüft tickerEnabled)
+        let timer = Timer(timeInterval: config.scrollSpeed, repeats: true) { [weak self] _ in
+            self?.tick()
+        }
         RunLoop.main.add(timer, forMode: .common)
         animTimer = timer
 
         runSocketServer { [weak self] msg -> String in
-            guard let self = self else { return "error" }
-            if msg.kind == .getStatus {
-                return self.statusJSON()
-            }
+            guard let self else { return "error" }
+            if msg.kind == .getStatus { return self.statusJSON() }
             var reply = "ok"
             DispatchQueue.main.sync { reply = self.receive(msg) }
             return reply
         }
     }
 
+    // ── Milan-Status ───────────────────────────────────────────────────────────
+
+    private func checkMilanStatus() {
+        let ctlPath    = (config.milanctlPath as NSString).expandingTildeInPath
+        milanInstalled = !config.milanctlPath.isEmpty &&
+                         FileManager.default.fileExists(atPath: ctlPath)
+        let port = config.milanPort
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            let running = Self.tcpReachable(port: port)
+            DispatchQueue.main.async {
+                guard let self else { return }
+                self.milanRunning = running
+                self.idleRendered = false
+                if case .idle = self.phase { self.setIdle() }
+            }
+        }
+    }
+
+    private static func tcpReachable(port: Int) -> Bool {
+        let fd = socket(AF_INET, SOCK_STREAM, 0)
+        guard fd >= 0 else { return false }
+        defer { close(fd) }
+        var tv = timeval(tv_sec: 1, tv_usec: 0)
+        setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
+        var addr = sockaddr_in()
+        addr.sin_family      = sa_family_t(AF_INET)
+        addr.sin_port        = UInt16(port).bigEndian
+        addr.sin_addr.s_addr = inet_addr("127.0.0.1")
+        return withUnsafePointer(to: &addr) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                connect(fd, $0, socklen_t(MemoryLayout<sockaddr_in>.size)) == 0
+            }
+        }
+    }
+
+    private func currentIdleColor() -> LEDColor {
+        guard !config.milanctlPath.isEmpty else { return LEDColor.from(config.defaultColor) }
+        return (milanInstalled && !milanRunning) ? .red : .white
+    }
+
+    // ── Menü ───────────────────────────────────────────────────────────────────
+
+    @objc private func statusItemClicked() {
+        if case .stickyWait(let cmd) = phase {
+            if let cmd = cmd {
+                let proc = Process()
+                proc.launchPath = "/bin/sh"
+                proc.arguments  = ["-c", cmd]
+                try? proc.run()
+            }
+            phase = .scrolling
+        } else {
+            statusItem.menu = buildMenu()
+            statusItem.button?.performClick(nil)
+            statusItem.menu = nil
+        }
+    }
+
+    private func buildMenu() -> NSMenu {
+        let menu = NSMenu()
+
+        // Milan-Abschnitt (nur wenn milanctlPath gesetzt)
+        if !config.milanctlPath.isEmpty {
+            let label: String
+            if !milanInstalled {
+                label = "Milan nicht konfiguriert"
+            } else {
+                label = milanRunning ? "● Milan läuft" : "○ Milan gestoppt"
+            }
+            let si = NSMenuItem(title: label, action: nil, keyEquivalent: "")
+            si.isEnabled = false
+            menu.addItem(si)
+            if milanInstalled {
+                let ti = NSMenuItem(title: milanRunning ? "Stoppen" : "Starten",
+                                    action: #selector(toggleMilan), keyEquivalent: "")
+                ti.target = self
+                menu.addItem(ti)
+            }
+            menu.addItem(.separator())
+        }
+
+        // Ticker-Steuerung (nur wenn aktiv)
+        if config.tickerEnabled {
+            let ci = NSMenuItem(title: "Clear queue", action: #selector(clearQueue), keyEquivalent: "")
+            ci.target = self
+            menu.addItem(ci)
+            menu.addItem(.separator())
+            let pi = NSMenuItem(title: userPaused ? "Resume" : "Pause",
+                                action: #selector(togglePause), keyEquivalent: "")
+            pi.target = self
+            pauseItem = pi
+            menu.addItem(pi)
+            menu.addItem(.separator())
+        }
+
+        // Ticker-Toggle
+        let tickerItem = NSMenuItem(title: "Ticker", action: #selector(toggleTickerEnabled),
+                                    keyEquivalent: "")
+        tickerItem.target = self
+        tickerItem.state  = config.tickerEnabled ? .on : .off
+        menu.addItem(tickerItem)
+        menu.addItem(.separator())
+
+        let qi = NSMenuItem(title: "Beenden", action: #selector(quit), keyEquivalent: "q")
+        qi.target = self
+        menu.addItem(qi)
+
+        return menu
+    }
+
+    // ── Actions ────────────────────────────────────────────────────────────────
+
+    @objc private func toggleTickerEnabled() {
+        config.tickerEnabled.toggle()
+        saveConfig(config)
+        idleRendered = false
+        if case .idle = phase { setIdle() }
+    }
+
+    @objc private func toggleMilan() {
+        if milanRunning {
+            runMilanctl("stop") { [weak self] _, _ in self?.checkMilanStatus() }
+        } else {
+            runMilanctl("start") { [weak self] _, _ in
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    self?.checkMilanStatus()
+                }
+            }
+        }
+    }
+
+    private func runMilanctl(_ command: String, completion: ((Int32, String) -> Void)? = nil) {
+        let path = (config.milanctlPath as NSString).expandingTildeInPath
+        guard !path.isEmpty, FileManager.default.fileExists(atPath: path) else {
+            completion?(-1, ""); return
+        }
+        let task = Process()
+        let pipe = Pipe()
+        task.executableURL  = URL(fileURLWithPath: "/bin/sh")
+        task.arguments      = ["-c",
+            "export PATH=$HOME/.rbenv/shims:/opt/homebrew/bin:/usr/local/bin:/usr/bin:$PATH; " +
+            "eval \"$(rbenv init - 2>/dev/null)\"; ruby '\(path)' \(command) 2>&1"]
+        task.standardOutput = pipe
+        task.standardError  = pipe
+        task.terminationHandler = { t in
+            let out = String(data: pipe.fileHandleForReading.readDataToEndOfFile(),
+                             encoding: .utf8) ?? ""
+            DispatchQueue.main.async { completion?(t.terminationStatus, out) }
+        }
+        try? task.run()
+    }
+
+    @objc private func clearQueue() {
+        queueLock.lock(); queue.removeAll(); queueLock.unlock()
+    }
+
+    @objc private func togglePause() {
+        userPaused = !userPaused
+        pauseItem?.title = userPaused ? "Resume" : "Pause"
+    }
+
+    @objc private func quit() {
+        animTimer?.invalidate()
+        unlink(socketPath)
+        NSApp.terminate(nil)
+    }
+
+    // ── URL-Handler (milan:// und ref://) ─────────────────────────────────────
+
+    @objc func handleURL(_ event: NSAppleEventDescriptor,
+                         withReply reply: NSAppleEventDescriptor) {
+        guard let raw      = event.paramDescriptor(forKeyword: AEKeyword(keyDirectObject))?.stringValue,
+              let incoming = URL(string: raw),
+              let host     = incoming.host
+        else { return }
+        let localPath = "/\(host)\(incoming.path)"
+        let encoded   = localPath.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed)
+                        ?? localPath
+        guard let target = URL(string: "http://localhost:\(config.milanPort)\(encoded)") else { return }
+        URLSession.shared.dataTask(with: target) { _, _, _ in }.resume()
+    }
+
     // ── Empfang ────────────────────────────────────────────────────────────────
 
     @discardableResult
     private func receive(_ msg: TickerMessage) -> String {
+        guard config.tickerEnabled else { return "disabled" }
+
         switch msg.kind {
         case .setWidth:
             if let w = msg.width, w >= 5 { displayWidth = w }
@@ -140,12 +329,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // ── Timer-Tick (Main-Thread) ───────────────────────────────────────────────
 
     private func tick() {
-        guard !userPaused else { return }
+        guard config.tickerEnabled, !userPaused else { return }
 
         switch phase {
 
         case .idle:
-            // Unterbrochene Nachricht zuerst zurückspielen
             if let saved = interrupted {
                 interrupted = nil
                 startMessage(saved)
@@ -159,7 +347,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         case .scrolling:
             let vc = visCols(displayWidth: displayWidth)
 
-            // Pause-Trigger prüfen (Spalte am linken Rand)
             if let p = pendingPauses.first, p.at == scrollOffset {
                 pendingPauses.removeFirst()
                 triggerPause(p.kind)
@@ -169,7 +356,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             showScrollFrame()
             scrollOffset += 1
 
-            // Ende: letzter sichtbarer Frame
             if canvas.count <= vc || scrollOffset >= canvas.count - vc {
                 phase = .idle
                 setIdle()
@@ -228,10 +414,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             canvas       = pad + stream.columns + pad
             scrollOffset = 0
 
-            // Pausen: Offset um vc verschieben (wegen führendem Padding)
-            // Außerdem Default-Endpause einfügen wenn keine expliziten Pausen am Ende
             var pauses   = stream.pauses.map { PauseMarker(at: $0.at + vc, kind: $0.kind) }
-            // Default-Pause: wenn Text vollständig eingerollt (offset == vc)
             let hasEarlyPause = pauses.contains { $0.at == vc }
             if !hasEarlyPause {
                 pauses.insert(PauseMarker(at: vc, kind: .timed(seconds: config.defaultPause)), at: 0)
@@ -269,25 +452,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    // ── Klick ──────────────────────────────────────────────────────────────────
-
-    @objc private func statusItemClicked() {
-        if case .stickyWait(let cmd) = phase {
-            if let cmd = cmd {
-                let proc = Process()
-                proc.launchPath = "/bin/sh"
-                proc.arguments  = ["-c", cmd]
-                try? proc.run()
-            }
-            phase = .scrolling
-        } else {
-            // Rechtsklick-Menü manuell öffnen
-            statusItem.menu = buildMenu()
-            statusItem.button?.performClick(nil)
-            statusItem.menu = nil
-        }
-    }
-
     // ── Darstellung ────────────────────────────────────────────────────────────
 
     private func showScrollFrame(blank: Bool = false) {
@@ -304,8 +468,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func setIdle() {
         guard !idleRendered else { return }
         idleRendered = true
-        let icon = renderIdleIcon(color: LEDColor.from(config.defaultColor))
-        setImage(icon)
+        setImage(renderIdleIcon(color: currentIdleColor()))
     }
 
     // ── Queue ──────────────────────────────────────────────────────────────────
@@ -327,37 +490,5 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         queueLock.lock()
         defer { queueLock.unlock() }
         return queue.isEmpty ? nil : queue.removeFirst()
-    }
-
-    // ── Menü ───────────────────────────────────────────────────────────────────
-
-    private func buildMenu() -> NSMenu {
-        let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "Clear queue", action: #selector(clearQueue), keyEquivalent: ""))
-        menu.addItem(.separator())
-        let pi = NSMenuItem(title: userPaused ? "Resume" : "Pause",
-                            action: #selector(togglePause), keyEquivalent: "")
-        pi.target = self
-        menu.addItem(pi)
-        menu.addItem(.separator())
-        let qi = NSMenuItem(title: "Quit", action: #selector(quit), keyEquivalent: "q")
-        qi.target = self
-        menu.addItem(qi)
-        return menu
-    }
-
-    @objc private func clearQueue() {
-        queueLock.lock(); queue.removeAll(); queueLock.unlock()
-    }
-
-    @objc private func togglePause() {
-        userPaused = !userPaused
-        pauseItem?.title = userPaused ? "Resume" : "Pause"
-    }
-
-    @objc private func quit() {
-        animTimer?.invalidate()
-        unlink(socketPath)
-        NSApp.terminate(nil)
     }
 }

@@ -122,4 +122,13 @@ let app = NSApplication.shared
 app.setActivationPolicy(.accessory)
 let delegate = AppDelegate()
 app.delegate = delegate
+
+// URL handler immer registrieren — handleURL prüft config.milanSchemeEnabled
+NSAppleEventManager.shared().setEventHandler(
+    delegate,
+    andSelector: #selector(AppDelegate.handleURL(_:withReply:)),
+    forEventClass: AEEventClass(kInternetEventClass),
+    andEventID: AEEventID(kAEGetURL)
+)
+
 app.run()

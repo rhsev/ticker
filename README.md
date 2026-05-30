@@ -6,21 +6,19 @@ Notifications can be overlooked. Motion catches the eye. ticker scrolls urgent m
 
 When a message arrives, the ticker appears in the menu bar and scrolls through all queued messages in sequence. Then it disappears or stays and waits for acknowledgment.
 
-NEW: Now supports transparent background mode for a native menu bar look.
-
 **Quick example**
 
 ```bash
 ticker --send "HELLO WORLD!"
 ```
 
+Transparent mode — adapts to your menu bar (default):
+
+![ticker transparent](screenshot_transparent.png)
+
 LED mode with black background:
 
 ![ticker demo](demo.gif)
-
-Transparent mode — adapts to your menu bar:
-
-![ticker transparent](screenshot_transparent.png)
 
 Each character is stored as six 8-bit glyph columns, five pixels wide plus one gap column, derived from the classic Adafruit GFX 5×7 bitmap font. Scrolling advances the canvas by exactly one column per tick, so the animation is pixel-smooth without any font rendering, which keeps CPU load very low. The same bitmap font drives the display and the custom glyph system. Like a real LED matrix display.
 
@@ -30,19 +28,27 @@ For a technical deep-dive see [TECHNICAL.md](TECHNICAL.md).
 
 ## Requirements
 
-- macOS 12 or later
+- macOS 13 or later
 - Apple Silicon or Intel
 
 ---
 
 ## Installation
 
-Download the binary from the [latest release](https://github.com/rhsev/ticker/releases/latest), then:
+Download `Ticker.app` from the [latest release](https://github.com/rhsev/ticker/releases/latest).
 
 ```bash
-cp ~/Downloads/ticker /usr/local/bin/ticker
-xattr -d com.apple.quarantine /usr/local/bin/ticker  # bypass Gatekeeper
-ticker &                                             # & starts it in the background
+# Remove quarantine
+xattr -dr com.apple.quarantine ~/Downloads/Ticker.app
+
+# Move to a permanent location
+mv ~/Downloads/Ticker.app ~/Applications/Ticker.app
+
+# Open once — registers the app with macOS
+open ~/Applications/Ticker.app
+
+# Optional: symlink the CLI binary
+ln -sf ~/Applications/Ticker.app/Contents/MacOS/ticker /usr/local/bin/ticker
 ```
 
 The app runs as a menu bar accessory (no Dock icon). It creates a Unix domain socket
@@ -50,7 +56,7 @@ at `/tmp/menubar_ticker.sock` and waits for commands.
 
 ### Auto-start at login
 
-Add `ticker` under **System Settings → General → Login Items**.
+Add `Ticker.app` under **System Settings → General → Login Items**.
 
 ---
 
@@ -176,6 +182,7 @@ Right-click the ticker to access:
 
 - **Clear queue** — discard all pending messages
 - **Pause / Resume** — freeze animation
+- **Ticker** — toggle the LED display on/off (the app keeps running)
 - **Quit**
 
 ---
@@ -186,22 +193,45 @@ Right-click the ticker to access:
 
 ```json
 {
-  "default_color": "amber",
-  "default_width": 20,
-  "scroll_speed": 0.05,
-  "default_pause": 3.0,
-  "custom_chars": {}
+  "tickerEnabled": true,
+  "defaultColor": "amber",
+  "defaultWidth": 20,
+  "scrollSpeed": 0.05,
+  "defaultPause": 3.0,
+  "transparent": true,
+  "customChars": {}
 }
 ```
 
 | Key | Description |
 |---|---|
-| `default_color` | LED color: `amber` `green` `red` `white` `yellow` |
-| `default_width` | Visible character columns (default 20) |
-| `scroll_speed` | Seconds per pixel column (default 0.05 = fast) |
-| `default_pause` | Seconds to hold when the message is fully visible (default 3) |
-| `transparent` | `true` for transparent background with system text color — works well on dark or coloured menu bars (default `false`) |
-| `custom_chars` | Extra glyphs as 6-column bitmaps (see below) |
+| `tickerEnabled` | Show the LED display (default `true`). When `false`, messages are accepted but not displayed — the app keeps running |
+| `defaultColor` | LED color: `amber` `green` `red` `white` `yellow` |
+| `defaultWidth` | Visible character columns (default 20) |
+| `scrollSpeed` | Seconds per pixel column (default 0.05) |
+| `defaultPause` | Seconds to hold when the message is fully visible (default 3) |
+| `transparent` | `true` for transparent background with system text color (default `true`) |
+| `customChars` | Extra glyphs as 6-column bitmaps (see below) |
+
+### Milan helper (optional)
+
+ticker registers the `milan://` and `ref://` URL schemes and forwards them to the local [Milan](https://github.com/rhsev/mi.lan) agent. If Milan is not running, the URL is silently dropped.
+
+To enable Milan status in the menu bar icon and start/stop from the menu, set `milanctlPath`:
+
+```json
+{
+  "milanctlPath": "~/bin/milanctl",
+  "milanPort": 8080
+}
+```
+
+When `milanctlPath` is set, the icon changes color: white when Milan is running, red when it is not.
+
+| Key | Description |
+|---|---|
+| `milanctlPath` | Path to `milanctl` — enables status indicator and start/stop menu. Leave empty to disable |
+| `milanPort` | Milan HTTP port (default 8080) |
 
 ### Custom glyphs
 
@@ -245,9 +275,13 @@ Example glyphs are in `tools/glyphs/`.
 ## Building from source
 
 ```bash
+# CLI binary
 swift build -c release
-# binary at .build/release/ticker
+# → .build/release/ticker
+
+# App bundle (required for Login Items and URL scheme registration)
+bash build-app.sh
+# → Ticker.app
 ```
 
 Requires Xcode Command Line Tools (`xcode-select --install`).
-
