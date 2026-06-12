@@ -80,7 +80,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         runSocketServer { [weak self] msg -> String in
             guard let self else { return "error" }
-            if msg.kind == .getStatus { return self.statusJSON() }
             var reply = "ok"
             DispatchQueue.main.sync { reply = self.receive(msg) }
             return reply
@@ -133,8 +132,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if case .stickyWait(let cmd) = phase {
             if let cmd = cmd {
                 let proc = Process()
-                proc.launchPath = "/bin/sh"
-                proc.arguments  = ["-c", cmd]
+                proc.executableURL = URL(fileURLWithPath: "/bin/sh")
+                proc.arguments     = ["-c", cmd]
                 try? proc.run()
             }
             phase = .scrolling
@@ -240,7 +239,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func clearQueue() {
+        clearAllMessages()
+    }
+
+    private func clearAllMessages() {
         queueLock.lock(); queue.removeAll(); queueLock.unlock()
+        interrupted = nil
+        currentMsg  = nil
+        phase = .idle
+        setIdle()
     }
 
     @objc private func togglePause() {
@@ -258,6 +265,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc func handleURL(_ event: NSAppleEventDescriptor,
                          withReply reply: NSAppleEventDescriptor) {
+        // Nur aktiv, wenn Milan konfiguriert ist — sonst könnte jede App
+        // über milan://-URLs Requests an localhost auslösen
+        guard !config.milanctlPath.isEmpty else { return }
         guard let raw      = event.paramDescriptor(forKeyword: AEKeyword(keyDirectObject))?.stringValue,
               let incoming = URL(string: raw),
               let host     = incoming.host
@@ -273,25 +283,30 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     @discardableResult
     private func receive(_ msg: TickerMessage) -> String {
+        // getStatus und quit funktionieren auch bei deaktiviertem Ticker
+        switch msg.kind {
+        case .getStatus:
+            return statusJSON()
+        case .quit:
+            DispatchQueue.main.async { NSApp.terminate(nil) }
+            return "ok"
+        default:
+            break
+        }
+
         guard config.tickerEnabled else { return "disabled" }
 
         switch msg.kind {
         case .setWidth:
             if let w = msg.width, w >= 5 { displayWidth = w }
             return "ok"
-        case .quit:
-            DispatchQueue.main.async { NSApp.terminate(nil) }
-            return "ok"
         case .clearQueue:
-            queueLock.lock(); queue.removeAll(); queueLock.unlock()
-            interrupted = nil
-            phase = .idle
-            setIdle()
+            clearAllMessages()
             return "ok"
-        case .getStatus:
-            return statusJSON()
         case .scroll, .standby:
             break
+        case .getStatus, .quit:
+            return "ok"   // bereits oben behandelt
         }
 
         switch msg.priority {
@@ -300,10 +315,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         case .urgent:
             prependQueue(msg)
         case .veryUrgent:
-            if case .scrolling = phase { interrupted = currentMsg }
-            else if case .defaultPause = phase { interrupted = currentMsg }
-            phase = .idle
-            prependQueue(msg)
+            // Sofort starten statt einreihen — die unterbrochene Nachricht
+            // wird danach von vorn wiederholt
+            switch phase {
+            case .scrolling, .pauseInStream, .defaultPause:
+                interrupted = currentMsg
+            default:
+                break
+            }
+            startMessage(msg)
         }
         return "ok"
     }
@@ -353,13 +373,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 return
             }
 
-            showScrollFrame()
-            scrollOffset += 1
-
+            // Ende erst nach dem Pause-Check prüfen, sonst geht ein Marker
+            // am Nachrichtenende verloren
             if canvas.count <= vc || scrollOffset >= canvas.count - vc {
                 phase = .idle
                 setIdle()
+                return
             }
+
+            showScrollFrame()
+            scrollOffset += 1
 
         case .pauseInStream(let until):
             if Date() >= until {

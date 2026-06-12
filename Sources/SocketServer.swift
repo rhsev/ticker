@@ -67,10 +67,15 @@ func cliSend(_ msg: TickerMessage) {
     socketPath.withCString { src in
         withUnsafeMutablePointer(to: &addr.sun_path.0) { _ = strcpy($0, src) }
     }
-    withUnsafePointer(to: &addr) {
+    let connected = withUnsafePointer(to: &addr) {
         $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-            _ = connect(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size))
+            connect(fd, $0, socklen_t(MemoryLayout<sockaddr_un>.size))
         }
+    } == 0
+    guard connected else {
+        close(fd)
+        fputs("Error: ticker is not running.\n", stderr)
+        exit(1)
     }
     let payload = encodeSocketMessage(msg)
     payload.withCString { _ = send(fd, $0, strlen($0), 0) }

@@ -89,21 +89,20 @@ func buildScrollStream(text: String, defaultColor: LEDColor,
             }
         }
 
-        // Reguläres Zeichen
-        let ch   = Character(String(text[i]).uppercased())
-        let vals: [UInt8]
+        // Reguläres Zeichen — uppercased() kann mehrstellig sein (ß → SS),
+        // Umlaute werden transliteriert (Ä → AE), sofern kein Custom-Char existiert
+        let upper    = String(text[i]).uppercased()
+        let expanded = customChars[upper] != nil ? upper : (UMLAUTS[upper] ?? upper)
 
-        if let custom = customChars[String(ch)] {
-            vals = custom
-        } else {
-            vals = FONT[ch] ?? FONT[" "]!
+        for ch in expanded {
+            let vals = customChars[String(ch)] ?? FONT[ch] ?? FONT[" "]!
+
+            // Pad to 6 columns so custom chars with fewer values still get a gap
+            var padded = vals
+            while padded.count < 6 { padded.append(0x00) }
+
+            columns += padded.map { ColoredColumn(value: $0, color: color) }
         }
-
-        // Pad to 6 columns so custom chars with fewer values still get a gap
-        var padded = vals
-        while padded.count < 6 { padded.append(0x00) }
-
-        columns += padded.map { ColoredColumn(value: $0, color: color) }
         i = text.index(after: i)
     }
 

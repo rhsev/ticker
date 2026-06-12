@@ -67,10 +67,5 @@ let FONT: [Character: [UInt8]] = [
     "★": [0x04, 0x1F, 0x0E, 0x1F, 0x04, 0x00],
 ]
 
-func textToColumns(_ text: String) -> [UInt8] {
-    var cols: [UInt8] = []
-    for ch in text.uppercased() {
-        cols += FONT[ch] ?? FONT[" "]!
-    }
-    return cols
-}
+// Umlaute haben keine eigenen Glyphen — Transliteration auf Basisbuchstaben
+let UMLAUTS: [String: String] = ["Ä": "AE", "Ö": "OE", "Ü": "UE"]
