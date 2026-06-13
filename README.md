@@ -219,14 +219,6 @@ Right-click the ticker to access:
 
 ticker registers the `milan://` and `ref://` URL schemes. When a link like `milan://hello/World` is opened from any app, ticker forwards it as a GET request to `http://localhost:{milanPort}/hello/World` on [Milan](https://github.com/rhsev/mi.lan). If Milan is not running, the request is silently dropped.
 
-For long-running scripts (GUI apps, streams), use the stream endpoint:
-
-```
-milan://stream/scriptname
-```
-
-Set `milanPort` in the config if Milan runs on a non-default port.
-
 ### Custom glyphs
 
 Glyphs are referenced by name via `\g[name]` in messages:
