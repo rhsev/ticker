@@ -10,9 +10,8 @@ struct TickerConfig: Codable {
     var customChars:       [String: [UInt8]] = [:]
     var transparent:       Bool              = true
 
-    // Milan URL-scheme helper (optional — activate by setting milanctlPath)
-    var milanctlPath: String = ""
-    var milanPort:    Int    = 8080
+    // Milan HTTP port — used by the milan:// URL handler
+    var milanPort: Int = 8080
 }
 
 private let configURL: URL = {

@@ -123,7 +123,7 @@ app.setActivationPolicy(.accessory)
 let delegate = AppDelegate()
 app.delegate = delegate
 
-// URL-Handler immer registrieren — handleURL prüft config.milanctlPath
+// milan:// URL-Handler registrieren
 NSAppleEventManager.shared().setEventHandler(
     delegate,
     andSelector: #selector(AppDelegate.handleURL(_:withReply:)),

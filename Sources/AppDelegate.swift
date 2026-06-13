@@ -24,11 +24,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var pauseItem:  NSMenuItem?
     private var config:     TickerConfig!
 
-    // Milan state
-    private var milanInstalled = false
-    private var milanRunning   = false
-    private var statusTimer:   Timer?
-
     // Zustand
     private var displayWidth: Int = 20
     private var phase: Phase = .idle
@@ -61,16 +56,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.button?.target = self
         statusItem.button?.sendAction(on: [.leftMouseUp])
 
-        // Milan-Status (nur wenn milanctlPath gesetzt)
-        if !config.milanctlPath.isEmpty {
-            checkMilanStatus()
-            let t = Timer(timeInterval: 5, repeats: true) { [weak self] _ in
-                self?.checkMilanStatus()
-            }
-            RunLoop.main.add(t, forMode: .common)
-            statusTimer = t
-        }
-
         // Animations-Timer (immer aktiv; tick() prüft tickerEnabled)
         let timer = Timer(timeInterval: config.scrollSpeed, repeats: true) { [weak self] _ in
             self?.tick()
@@ -86,44 +71,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    // ── Milan-Status ───────────────────────────────────────────────────────────
-
-    private func checkMilanStatus() {
-        let ctlPath    = (config.milanctlPath as NSString).expandingTildeInPath
-        milanInstalled = !config.milanctlPath.isEmpty &&
-                         FileManager.default.fileExists(atPath: ctlPath)
-        let port = config.milanPort
-        DispatchQueue.global(qos: .utility).async { [weak self] in
-            let running = Self.tcpReachable(port: port)
-            DispatchQueue.main.async {
-                guard let self else { return }
-                self.milanRunning = running
-                self.idleRendered = false
-                if case .idle = self.phase { self.setIdle() }
-            }
-        }
-    }
-
-    private static func tcpReachable(port: Int) -> Bool {
-        let fd = socket(AF_INET, SOCK_STREAM, 0)
-        guard fd >= 0 else { return false }
-        defer { close(fd) }
-        var tv = timeval(tv_sec: 1, tv_usec: 0)
-        setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
-        var addr = sockaddr_in()
-        addr.sin_family      = sa_family_t(AF_INET)
-        addr.sin_port        = UInt16(port).bigEndian
-        addr.sin_addr.s_addr = inet_addr("127.0.0.1")
-        return withUnsafePointer(to: &addr) {
-            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) {
-                connect(fd, $0, socklen_t(MemoryLayout<sockaddr_in>.size)) == 0
-            }
-        }
-    }
-
     private func currentIdleColor() -> LEDColor {
-        guard !config.milanctlPath.isEmpty else { return LEDColor.from(config.defaultColor) }
-        return (milanInstalled && !milanRunning) ? .red : .white
+        LEDColor.from(config.defaultColor)
     }
 
     // ── Menü ───────────────────────────────────────────────────────────────────
@@ -146,26 +95,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func buildMenu() -> NSMenu {
         let menu = NSMenu()
-
-        // Milan-Abschnitt (nur wenn milanctlPath gesetzt)
-        if !config.milanctlPath.isEmpty {
-            let label: String
-            if !milanInstalled {
-                label = "Milan nicht konfiguriert"
-            } else {
-                label = milanRunning ? "● Milan läuft" : "○ Milan gestoppt"
-            }
-            let si = NSMenuItem(title: label, action: nil, keyEquivalent: "")
-            si.isEnabled = false
-            menu.addItem(si)
-            if milanInstalled {
-                let ti = NSMenuItem(title: milanRunning ? "Stoppen" : "Starten",
-                                    action: #selector(toggleMilan), keyEquivalent: "")
-                ti.target = self
-                menu.addItem(ti)
-            }
-            menu.addItem(.separator())
-        }
 
         // Ticker-Steuerung (nur wenn aktiv)
         if config.tickerEnabled {
@@ -205,39 +134,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if case .idle = phase { setIdle() }
     }
 
-    @objc private func toggleMilan() {
-        if milanRunning {
-            runMilanctl("stop") { [weak self] _, _ in self?.checkMilanStatus() }
-        } else {
-            runMilanctl("start") { [weak self] _, _ in
-                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                    self?.checkMilanStatus()
-                }
-            }
-        }
-    }
-
-    private func runMilanctl(_ command: String, completion: ((Int32, String) -> Void)? = nil) {
-        let path = (config.milanctlPath as NSString).expandingTildeInPath
-        guard !path.isEmpty, FileManager.default.fileExists(atPath: path) else {
-            completion?(-1, ""); return
-        }
-        let task = Process()
-        let pipe = Pipe()
-        task.executableURL  = URL(fileURLWithPath: "/bin/sh")
-        task.arguments      = ["-c",
-            "export PATH=$HOME/.rbenv/shims:/opt/homebrew/bin:/usr/local/bin:/usr/bin:$PATH; " +
-            "eval \"$(rbenv init - 2>/dev/null)\"; ruby '\(path)' \(command) 2>&1"]
-        task.standardOutput = pipe
-        task.standardError  = pipe
-        task.terminationHandler = { t in
-            let out = String(data: pipe.fileHandleForReading.readDataToEndOfFile(),
-                             encoding: .utf8) ?? ""
-            DispatchQueue.main.async { completion?(t.terminationStatus, out) }
-        }
-        try? task.run()
-    }
-
     @objc private func clearQueue() {
         clearAllMessages()
     }
@@ -261,13 +157,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.terminate(nil)
     }
 
-    // ── URL-Handler (milan:// und ref://) ─────────────────────────────────────
+    // ── URL-Handler (milan://) ────────────────────────────────────────────────
 
     @objc func handleURL(_ event: NSAppleEventDescriptor,
                          withReply reply: NSAppleEventDescriptor) {
-        // Nur aktiv, wenn Milan konfiguriert ist — sonst könnte jede App
-        // über milan://-URLs Requests an localhost auslösen
-        guard !config.milanctlPath.isEmpty else { return }
         guard let raw      = event.paramDescriptor(forKeyword: AEKeyword(keyDirectObject))?.stringValue,
               let incoming = URL(string: raw),
               let host     = incoming.host

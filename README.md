@@ -199,6 +199,7 @@ Right-click the ticker to access:
   "scrollSpeed": 0.05,
   "defaultPause": 3.0,
   "transparent": true,
+  "milanPort": 8080,
   "customChars": {}
 }
 ```
@@ -211,27 +212,20 @@ Right-click the ticker to access:
 | `scrollSpeed` | Seconds per pixel column (default 0.05) |
 | `defaultPause` | Seconds to hold when the message is fully visible (default 3) |
 | `transparent` | `true` for transparent background with system text color (default `true`) |
+| `milanPort` | Milan HTTP port for `milan://` URL forwarding (default 8080) |
 | `customChars` | Extra glyphs as 6-column bitmaps (see below) |
 
-### Milan helper (optional)
+### Milan URL scheme
 
-ticker registers the `milan://` and `ref://` URL schemes and forwards them to the local [Milan](https://github.com/rhsev/mi.lan) agent. If Milan is not running, the URL is silently dropped.
+ticker registers the `milan://` and `ref://` URL schemes. When a link like `milan://hello/World` is opened from any app, ticker forwards it as a GET request to `http://localhost:{milanPort}/hello/World` on [Milan](https://github.com/rhsev/mi.lan). If Milan is not running, the request is silently dropped.
 
-To enable Milan status in the menu bar icon and start/stop from the menu, set `milanctlPath`:
+For long-running scripts (GUI apps, streams), use the stream endpoint:
 
-```json
-{
-  "milanctlPath": "~/bin/milanctl",
-  "milanPort": 8080
-}
+```
+milan://stream/scriptname
 ```
 
-When `milanctlPath` is set, the icon changes color: white when Milan is running, red when it is not.
-
-| Key | Description |
-|---|---|
-| `milanctlPath` | Path to `milanctl` — enables status indicator and start/stop menu. Leave empty to disable |
-| `milanPort` | Milan HTTP port (default 8080) |
+Set `milanPort` in the config if Milan runs on a non-default port.
 
 ### Custom glyphs
 
