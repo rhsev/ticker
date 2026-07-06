@@ -13,6 +13,7 @@ swift build -c release 2>&1
 
 cp .build/release/ticker "$CONTENTS/MacOS/ticker"
 cp Info.plist "$CONTENTS/Info.plist"
+cp icons/ticker.icns "$CONTENTS/Resources/ticker.icns"
 
 # Ad-hoc sign — required for URL scheme registration
 codesign --force --deep --sign - "$APP"
