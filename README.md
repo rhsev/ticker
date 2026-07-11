@@ -271,3 +271,7 @@ bash build-app.sh
 ```
 
 Requires Xcode Command Line Tools (`xcode-select --install`).
+
+---
+
+*Part of a family of plain-text tools — the [profile page](https://github.com/rhsev) has the map.*
