@@ -24,9 +24,9 @@ func runSocketServer(onMessage: @escaping (TickerMessage) -> String) {
         guard bound == 0 else { return }
         listen(serverFd, 8)
 
-        var tv = timeval(tv_sec: 1, tv_usec: 0)
-        setsockopt(serverFd, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
-
+        // No accept() timeout: the loop has no exit condition, so a timeout would
+        // only wake the thread once per second to continue. Blocking accept() lets
+        // it sleep until a client actually connects.
         while true {
             var clientAddr = sockaddr_un()
             var len = socklen_t(MemoryLayout<sockaddr_un>.size)

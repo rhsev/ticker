@@ -56,12 +56,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.button?.target = self
         statusItem.button?.sendAction(on: [.leftMouseUp])
 
-        // Animations-Timer (immer aktiv; tick() prüft tickerEnabled)
-        let timer = Timer(timeInterval: config.scrollSpeed, repeats: true) { [weak self] _ in
-            self?.tick()
-        }
-        RunLoop.main.add(timer, forMode: .common)
-        animTimer = timer
+        // Idle-Icon sofort zeigen — der Timer läuft erst, wenn es etwas zu
+        // animieren gibt (siehe startTimer/stopTimer)
+        setIdle()
 
         runSocketServer { [weak self] msg -> String in
             guard let self else { return "error" }
@@ -75,6 +72,28 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         LEDColor.from(config.defaultColor)
     }
 
+    // ── Animations-Timer ───────────────────────────────────────────────────────
+    //
+    // Der Timer läuft nur, solange sich etwas bewegt. Im Leerlauf (leere Queue,
+    // sticky-Wartezustand, Ticker aus, pausiert) wird er gestoppt — sonst weckt
+    // er den Prozess dauerhaft 1/scrollSpeed-mal pro Sekunde für nichts.
+    // Alles, was wieder etwas zu tun gibt, ruft startTimer().
+
+    private func startTimer() {
+        guard animTimer == nil, config.tickerEnabled, !userPaused else { return }
+        let timer = Timer(timeInterval: config.scrollSpeed, repeats: true) { [weak self] _ in
+            self?.tick()
+        }
+        timer.tolerance = config.scrollSpeed * 0.1   // erlaubt dem Kernel, Wakeups zu bündeln
+        RunLoop.main.add(timer, forMode: .common)
+        animTimer = timer
+    }
+
+    private func stopTimer() {
+        animTimer?.invalidate()
+        animTimer = nil
+    }
+
     // ── Menü ───────────────────────────────────────────────────────────────────
 
     @objc private func statusItemClicked() {
@@ -86,6 +105,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 try? proc.run()
             }
             phase = .scrolling
+            startTimer()
         } else {
             statusItem.menu = buildMenu()
             statusItem.button?.performClick(nil)
@@ -132,6 +152,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         saveConfig(config)
         idleRendered = false
         if case .idle = phase { setIdle() }
+        if config.tickerEnabled { startTimer() } else { stopTimer() }
     }
 
     @objc private func clearQueue() {
@@ -144,11 +165,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         currentMsg  = nil
         phase = .idle
         setIdle()
+        stopTimer()
     }
 
     @objc private func togglePause() {
         userPaused = !userPaused
         pauseItem?.title = userPaused ? "Resume" : "Pause"
+        if userPaused { stopTimer() } else { startTimer() }
     }
 
     @objc private func quit() {
@@ -218,6 +241,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
             startMessage(msg)
         }
+        startTimer()
         return "ok"
     }
 
@@ -242,7 +266,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     // ── Timer-Tick (Main-Thread) ───────────────────────────────────────────────
 
     private func tick() {
-        guard config.tickerEnabled, !userPaused else { return }
+        guard config.tickerEnabled, !userPaused else { stopTimer(); return }
 
         switch phase {
 
@@ -253,7 +277,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 return
             }
             guard let msg = dequeueNext() else {
-                setIdle(); return
+                setIdle(); stopTimer(); return
             }
             startMessage(msg)
 
@@ -298,7 +322,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
 
         case .stickyWait:
-            break  // wartet auf Klick
+            stopTimer()   // wartet auf Klick — statusItemClicked startet neu
 
         case .defaultPause(let until):
             if Date() >= until {
