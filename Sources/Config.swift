@@ -9,6 +9,9 @@ struct TickerConfig: Codable {
     var defaultPause:      Double            = 3.0
     var customChars:       [String: [UInt8]] = [:]
     var transparent:       Bool              = true
+    // Farbe im Transparentmodus: "auto" überlässt sie der Menüleiste
+    // (hell/dunkel), ein Farbname färbt die Punkte fest ein.
+    var transparentColor:  String            = "auto"
 
     // Milan HTTP port — used by the milan:// URL handler
     var milanPort: Int = 8080

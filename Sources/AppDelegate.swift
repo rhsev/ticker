@@ -26,6 +26,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // Zustand
     private var displayWidth: Int = 20
+    private var tintColor: LEDColor?   // im Menü gewählte Grundfarbe, nil = Menüleiste
     private var phase: Phase = .idle
     private var userPaused = false
     private var idleRendered = false
@@ -47,6 +48,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         config           = loadConfig()
         displayWidth     = config.defaultWidth
         renderTransparent = config.transparent
+        applyTint()
 
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         statusItem.button?.title = ""
@@ -73,8 +75,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// Grundfarbe einer Nachricht. Im gefärbten Transparentmodus gilt die im Menü
+    /// gewählte Farbe; \c[…] im Text überschreibt sie danach spaltenweise.
+    private func baseColor() -> LEDColor {
+        if renderColoredTransparent, let tint = tintColor { return tint }
+        return LEDColor.from(config.defaultColor)
+    }
+
     private func currentIdleColor() -> LEDColor {
-        LEDColor.from(config.defaultColor)
+        baseColor()
     }
 
     // ── Pixeldichte ────────────────────────────────────────────────────────────
@@ -154,6 +163,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             menu.addItem(.separator())
         }
 
+        // Farbe (nur im Transparentmodus — opak gilt defaultColor aus der Config)
+        if config.transparent {
+            let colorItem = NSMenuItem(title: "Color", action: nil, keyEquivalent: "")
+            colorItem.submenu = buildColorMenu()
+            menu.addItem(colorItem)
+            menu.addItem(.separator())
+        }
+
         // Ticker-Toggle
         let tickerItem = NSMenuItem(title: "Ticker", action: #selector(toggleTickerEnabled),
                                     keyEquivalent: "")
@@ -169,7 +186,76 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return menu
     }
 
+    private func buildColorMenu() -> NSMenu {
+        let menu    = NSMenu()
+        let current = config.transparentColor.lowercased()
+        // Nur die gängigen Grundfarben — \c[red] und \c[yellow] bleiben im Text
+        // natürlich weiter möglich, sie brauchen nur keinen Menüeintrag.
+        let entries = [("Menu bar default", "auto"),
+                       ("Amber", "amber"),
+                       ("Green", "green"),
+                       ("White", "white"),
+                       ("Black", "black")]
+        for (title, key) in entries {
+            let item = NSMenuItem(title: title, action: #selector(setTintColor(_:)), keyEquivalent: "")
+            item.target           = self
+            item.representedObject = key
+            item.state            = (current == key) ? .on : .off
+            menu.addItem(item)
+            if key == "auto" { menu.addItem(.separator()) }
+        }
+        return menu
+    }
+
     // ── Actions ────────────────────────────────────────────────────────────────
+
+    @objc private func setTintColor(_ sender: NSMenuItem) {
+        guard let key = sender.representedObject as? String else { return }
+        config.transparentColor = key
+        saveConfig(config)
+        applyTint()
+        refreshDisplay()
+    }
+
+    /// "auto" (oder ein unbekannter Name) → Template, sonst gefärbt
+    private func applyTint() {
+        let key = config.transparentColor.lowercased()
+        tintColor = key == "auto" ? nil : LEDColor(rawValue: key)
+        renderColoredTransparent = renderTransparent && tintColor != nil
+    }
+
+    /// Zeichnet das aktuell Sichtbare in der neuen Farbe neu, ohne den Ablauf
+    /// zu stören. Die laufende Nachricht wird neu aufgebaut, weil die Farben
+    /// beim Erzeugen des Streams in die Spalten eingebacken werden.
+    private func refreshDisplay() {
+        idleRendered = false
+        switch phase {
+        case .idle:
+            setIdle()
+
+        case .standby:
+            if let msg = currentMsg {
+                setImage(renderStandbyFrame(text: msg.text, displayWidth: displayWidth,
+                                            defaultColor: baseColor(),
+                                            customChars: config.customChars))
+            }
+
+        default:
+            guard let msg = currentMsg, msg.kind == .scroll, !canvas.isEmpty else { break }
+            let stream = buildScrollStream(text: msg.text, defaultColor: baseColor(),
+                                           onClickCommand: msg.onClickCommand,
+                                           customChars: config.customChars)
+            let vc  = visCols(displayWidth: displayWidth)
+            let pad = [ColoredColumn](repeating: ColoredColumn(value: 0, color: baseColor()), count: vc)
+            let rebuilt = pad + stream.columns + pad
+            // Gleicher Text, gleiche Breite → gleiche Geometrie; nur die Farben
+            // ändern sich, Scrollposition und offene Pausen bleiben gültig.
+            if rebuilt.count == canvas.count {
+                canvas = rebuilt
+                showScrollFrame()
+            }
+        }
+    }
 
     @objc private func toggleTickerEnabled() {
         config.tickerEnabled.toggle()
@@ -366,7 +452,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private func startMessage(_ msg: TickerMessage) {
         idleRendered = false
         currentMsg = msg
-        let defColor = LEDColor.from(config.defaultColor)
+        let defColor = baseColor()
 
         switch msg.kind {
         case .scroll:

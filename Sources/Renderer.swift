@@ -21,6 +21,7 @@ func nsColor(_ c: LEDColor) -> NSColor {
     case .red:    return NSColor(red: 1.0,  green: 0.1,  blue: 0.0,  alpha: 1)
     case .white:  return NSColor(red: 1.0,  green: 1.0,  blue: 1.0,  alpha: 1)
     case .yellow: return NSColor(red: 1.0,  green: 0.9,  blue: 0.0,  alpha: 1)
+    case .black:  return NSColor(red: 0.0,  green: 0.0,  blue: 0.0,  alpha: 1)
     }
 }
 
@@ -34,6 +35,12 @@ private let imgHtransparent = ledRows * rowH - ledGap + paddingTop
 // Backing-Scale des Bildschirms mit der Menüleiste — gesetzt aus AppDelegate,
 // aktualisiert bei Bildschirmwechsel. Ganzzahlig, damit das Punktraster scharf bleibt.
 var renderScale = 2
+
+// Transparentmodus: false = Template-Bild, die Menüleiste färbt selbst ein
+// (hell/dunkel, Hervorhebung beim Klick) und Farben im Datenstrom sind wirkungslos.
+// true = die Punkte werden in ihrer eigenen Farbe gezeichnet, also in der
+// eingestellten Grundfarbe, die \c[…] pro Nachricht überschreiben darf.
+var renderColoredTransparent = false
 
 // ── Farben als fertige RGBA-Pixel ─────────────────────────────────────────────
 //
@@ -49,7 +56,7 @@ private func packed(_ c: NSColor) -> UInt32 {
 
 private let packedOn: [LEDColor: UInt32] = {
     var t = [LEDColor: UInt32]()
-    for c in [LEDColor.amber, .green, .red, .white, .yellow] { t[c] = packed(nsColor(c)) }
+    for c in [LEDColor.amber, .green, .red, .white, .yellow, .black] { t[c] = packed(nsColor(c)) }
     return t
 }()
 
@@ -117,7 +124,8 @@ private func renderFrame(columns: [ColoredColumn], offset: Int, visibleCols: Int
             let v: UInt32
             if renderTransparent {
                 guard on else { continue }          // unbeleuchtete Punkte bleiben transparent
-                v = packedTemplate
+                v = renderColoredTransparent ? (packedOn[col.color] ?? packedTemplate)
+                                             : packedTemplate
             } else {
                 v = on ? (packedOn[col.color] ?? packedTemplate) : packedOff
             }
@@ -132,7 +140,9 @@ private func renderFrame(columns: [ColoredColumn], offset: Int, visibleCols: Int
     rep.size = size
     let img = NSImage(size: size)
     img.addRepresentation(rep)
-    img.isTemplate = renderTransparent
+    // Nur ungefärbte Transparenz ist ein Template — sobald echte Farben im Bild
+    // stehen, muss es so bleiben, wie es gezeichnet wurde.
+    img.isTemplate = renderTransparent && !renderColoredTransparent
     return img
 }
 

@@ -119,9 +119,16 @@ Control codes are embedded in the message text. They are not displayed.
 \c[red]      red
 \c[white]    white
 \c[yellow]   yellow
+\c[black]    black
+\c[]         back to the base color
 ```
 
-Color applies to all following characters until the next `\c[…]`.
+Color applies to all following characters until the next `\c[…]`. Use `\c[]` to return
+to the message's base color without hardcoding which one it is — an unknown name does
+the same rather than silently picking a color.
+
+In transparent mode these codes only take effect once `transparentColor` is set to a
+color — with `auto`, macOS tints the whole display and the colors are ignored.
 
 ```bash
 ticker --send "STATUS \c[green]OK\c[amber] ALL CLEAR"
@@ -182,6 +189,7 @@ Right-click the ticker to access:
 
 - **Clear queue** — discard all pending messages
 - **Pause / Resume** — freeze animation
+- **Color** — base color in transparent mode; *Menu bar default* leaves the tinting to macOS
 - **Ticker** — toggle the LED display on/off (the app keeps running)
 - **Quit**
 
@@ -199,6 +207,7 @@ Right-click the ticker to access:
   "scrollSpeed": 0.05,
   "defaultPause": 3.0,
   "transparent": true,
+  "transparentColor": "auto",
   "milanPort": 8080,
   "customChars": {}
 }
@@ -212,6 +221,7 @@ Right-click the ticker to access:
 | `scrollSpeed` | Seconds per pixel column (default 0.05) |
 | `defaultPause` | Seconds to hold when the message is fully visible (default 3) |
 | `transparent` | `true` for transparent background with system text color (default `true`) |
+| `transparentColor` | Base color in transparent mode: `auto` leaves the tinting to macOS (light/dark) and ignores all colors, any other color makes it the default that `\c[…]` can override per message. Also in the menu under **Color** |
 | `milanPort` | Milan HTTP port for `milan://` URL forwarding (default 8080) |
 | `customChars` | Extra glyphs as 6-column bitmaps (see below) |
 

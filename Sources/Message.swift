@@ -3,7 +3,7 @@ import Foundation
 // ── Typen ──────────────────────────────────────────────────────────────────────
 
 enum LEDColor: String, Codable {
-    case amber, green, red, white, yellow
+    case amber, green, red, white, yellow, black
 
     static func from(_ s: String) -> LEDColor {
         LEDColor(rawValue: s.lowercased()) ?? .amber
@@ -70,7 +70,7 @@ func buildScrollStream(text: String, defaultColor: LEDColor,
                 if let (code, end) = parseCode(text, from: i) {
                     switch code {
                     case .color(let c):
-                        color = c
+                        color = c ?? defaultColor
                     case .pause(var k):
                         if case .sticky(nil, let b) = k, let cmd = onClickCommand {
                             k = .sticky(onClickCommand: cmd, blinks: b)
@@ -110,7 +110,7 @@ func buildScrollStream(text: String, defaultColor: LEDColor,
 }
 
 private enum ParsedCode {
-    case color(LEDColor)
+    case color(LEDColor?)   // nil = zurück zur Grundfarbe der Nachricht
     case pause(PauseKind)
     case glyph(String)
 }
@@ -128,7 +128,8 @@ private func parseCode(_ text: String, from start: String.Index) -> (ParsedCode,
     i = text.index(after: i)
 
     switch type {
-    case "c": return (.color(LEDColor.from(content)), i)
+    // Leerer oder unbekannter Farbname → nil, aufgelöst zur Grundfarbe
+    case "c": return (.color(LEDColor(rawValue: content.lowercased())), i)
     case "p":
         if content.hasPrefix("sticky") {
             let blinks = content.hasPrefix("sticky:") ? Int(content.dropFirst(7)) ?? 0 : 0
