@@ -189,7 +189,7 @@ Right-click the ticker to access:
 
 - **Clear queue** — discard all pending messages
 - **Pause / Resume** — freeze animation
-- **Color** — base color in transparent mode; *Menu bar default* leaves the tinting to macOS
+- **Color** — base color in transparent mode; *Adaptive* leaves the tinting to macOS, which follows light/dark but ignores all colors
 - **Ticker** — toggle the LED display on/off (the app keeps running)
 - **Quit**
 
@@ -221,7 +221,7 @@ Right-click the ticker to access:
 | `scrollSpeed` | Seconds per pixel column (default 0.05) |
 | `defaultPause` | Seconds to hold when the message is fully visible (default 3) |
 | `transparent` | `true` for transparent background with system text color (default `true`) |
-| `transparentColor` | Base color in transparent mode: `auto` leaves the tinting to macOS (light/dark) and ignores all colors, any other color makes it the default that `\c[…]` can override per message. Also in the menu under **Color** |
+| `transparentColor` | Base color in transparent mode: `auto` is adaptive — macOS tints it for light/dark and all colors are ignored. Any other color becomes the base that `\c[…]` can override per message. Also in the menu under **Color** |
 | `milanPort` | Milan HTTP port for `milan://` URL forwarding (default 8080) |
 | `customChars` | Extra glyphs as 6-column bitmaps (see below) |
 

@@ -191,7 +191,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let current = config.transparentColor.lowercased()
         // Nur die gängigen Grundfarben — \c[red] und \c[yellow] bleiben im Text
         // natürlich weiter möglich, sie brauchen nur keinen Menüeintrag.
-        let entries = [("Menu bar default", "auto"),
+        let entries = [("Adaptive (no colors)", "auto"),
                        ("Amber", "amber"),
                        ("Green", "green"),
                        ("White", "white"),
