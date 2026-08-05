@@ -7,9 +7,9 @@
     <key>CFBundleName</key>
     <string>Ticker</string>
     <key>CFBundleVersion</key>
-    <string>2.0.2</string>
+    <string>2.1.0</string>
     <key>CFBundleShortVersionString</key>
-    <string>2.0.2</string>
+    <string>2.1.0</string>
     <key>CFBundleExecutable</key>
     <string>ticker</string>
     <key>CFBundlePackageType</key>
