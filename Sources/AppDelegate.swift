@@ -56,6 +56,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem.button?.target = self
         statusItem.button?.sendAction(on: [.leftMouseUp])
 
+        updateRenderScale()
+        NotificationCenter.default.addObserver(
+            self, selector: #selector(screensChanged),
+            name: NSApplication.didChangeScreenParametersNotification, object: nil)
+
         // Idle-Icon sofort zeigen — der Timer läuft erst, wenn es etwas zu
         // animieren gibt (siehe startTimer/stopTimer)
         setIdle()
@@ -70,6 +75,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func currentIdleColor() -> LEDColor {
         LEDColor.from(config.defaultColor)
+    }
+
+    // ── Pixeldichte ────────────────────────────────────────────────────────────
+    //
+    // Der Renderer schreibt Pixel direkt und braucht dafür die Auflösung des
+    // Bildschirms, auf dem die Menüleiste liegt.
+
+    private func updateRenderScale() {
+        let s = statusItem.button?.window?.backingScaleFactor
+             ?? NSScreen.main?.backingScaleFactor ?? 2
+        renderScale = max(1, Int(s.rounded()))
+    }
+
+    @objc private func screensChanged() {
+        let previous = renderScale
+        updateRenderScale()
+        guard renderScale != previous else { return }
+        idleRendered = false
+        if case .idle = phase { setIdle() }
     }
 
     // ── Animations-Timer ───────────────────────────────────────────────────────
