@@ -44,8 +44,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // ── Setup ──────────────────────────────────────────────────────────────────
 
+    // Load config before a launch-time GetURL event arrives (it is delivered
+    // between willFinishLaunching and didFinishLaunching).
+    func applicationWillFinishLaunching(_ notification: Notification) {
+        config = loadConfig()
+    }
+
     func applicationDidFinishLaunching(_ notification: Notification) {
-        config           = loadConfig()
         displayWidth     = config.defaultWidth
         renderTransparent = config.transparent
         applyTint()
