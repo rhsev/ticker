@@ -156,8 +156,15 @@ Glyphs are defined in `custom_chars` in the config file (see below).
 \p[sticky:N]   pause with N blinks before waiting (e.g. \p[sticky:3])
 ```
 
-The pause triggers when it scrolls into the leftmost visible column, so the
-preceding text is fully readable before the hold takes effect.
+The pause triggers when the marker scrolls into the leftmost visible column.
+The display then shows the text *after* the marker; the text before it has
+already scrolled out. So put a sticky marker at the start of the text you want
+held — a marker at the very end holds an empty display:
+
+```bash
+ticker --send "\p[sticky:3]BUILD FAILED"    # holds "BUILD FAILED"
+ticker --send "BUILD FAILED \p[sticky:3]"   # scrolls past, then holds a blank
+```
 
 When `\p[sticky:N]` activates, the display blinks N times to draw attention,
 then holds the text until the user clicks.
@@ -167,7 +174,7 @@ then holds the text until the user clicks.
 An optional shell command runs when the user clicks the sticky item:
 
 ```bash
-ticker --send "BUILD FAILED \p[sticky:3]" --on-click "open -a Xcode"
+ticker --send "\p[sticky:3]BUILD FAILED" --on-click "open -a Xcode"
 ticker --send "DEPLOY DONE \p[3] RESTARTING..."
 ```
 
